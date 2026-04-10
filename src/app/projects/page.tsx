@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { LayoutDashboard, Globe, Beaker, LogOut, ChevronRight, History } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { LayoutDashboard, Globe, Beaker, LogOut, ChevronRight, History, ChevronDown, User, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -9,6 +9,18 @@ export default function ProjectsPage() {
   const [activeTab, setActiveTab] = useState("nabhira");
   const { logout } = useAuth();
   const router = useRouter();
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const tabs = [
     {
@@ -75,21 +87,17 @@ export default function ProjectsPage() {
           ))}
         </nav>
 
-        <div className="p-6 mt-auto border-t border-white/10">
-          <button 
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-5 py-4 text-red-400 hover:bg-red-500/10 rounded-2xl transition-all font-bold"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Sign Out</span>
-          </button>
+        <div className="p-8 mt-auto border-t border-white/5">
+          <p className="text-white/20 text-[10px] text-center font-medium tracking-widest uppercase">
+            Admin Suite v1.1
+          </p>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-24 bg-white border-b border-gray-100 flex items-center justify-between px-12 shrink-0">
+        <header className="h-24 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-12 shrink-0 sticky top-0 z-30 shadow-sm">
           <div>
             <h2 className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em]">Project Overview</h2>
             <div className="flex items-center gap-2 mt-1">
@@ -100,14 +108,52 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="text-right">
-              <p className="text-sm font-bold text-[#11253e]">Admin User</p>
-              <p className="text-xs text-gray-400 font-medium">System Administrator</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#11253e] to-[#030213] flex items-center justify-center text-white font-bold shadow-lg shadow-[#11253e]/20">
-              AD
-            </div>
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="flex items-center gap-4 hover:bg-gray-50 p-2 rounded-2xl transition-all duration-200"
+            >
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-bold text-[#11253e]">Admin User</p>
+                <p className="text-xs text-gray-400 font-medium">System Administrator</p>
+              </div>
+              <div className="relative">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#11253e] to-[#030213] flex items-center justify-center text-white font-bold shadow-lg shadow-[#11253e]/20">
+                  AD
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100">
+                  <ChevronDown className={`w-3 h-3 text-[#11253e] transition-transform duration-300 ${showProfileDropdown ? 'rotate-180' : ''}`} />
+                </div>
+              </div>
+            </button>
+
+            {showProfileDropdown && (
+              <div className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl border border-gray-100 py-4 z-50 animate-in fade-in zoom-in duration-200 origin-top-right">
+                <div className="px-6 py-4 border-b border-gray-50 mb-2">
+                  <p className="text-sm font-bold text-[#11253e]">Admin User</p>
+                  <p className="text-xs text-gray-400">admin@nabhira.com</p>
+                </div>
+                
+                <div className="px-2 space-y-1">
+                  <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+                    <User className="w-4 h-4" />
+                    My Profile
+                  </button>
+                  <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+                    <Settings className="w-4 h-4" />
+                    Account Settings
+                  </button>
+                  <div className="h-px bg-gray-50 my-2 mx-4" />
+                  <button 
+                    onClick={logout}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
@@ -129,7 +175,7 @@ export default function ProjectsPage() {
                     View Project Site
                   </button>
                   <button 
-                    onClick={() => window.open("/admin/dashboard", "_blank")}
+                    onClick={() => window.open(`/admin/dashboard/${activeTab}`, "_blank")}
                     className="px-8 py-3.5 bg-black/20 text-white rounded-2xl font-bold hover:bg-black/30 transition-all border border-white/20 flex items-center gap-2"
                   >
                     <History className="w-4 h-4" />

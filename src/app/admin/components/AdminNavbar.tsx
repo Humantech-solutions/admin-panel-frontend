@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
+import { ChevronDown, User, Settings, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface AdminNavbarProps {
@@ -8,12 +10,23 @@ interface AdminNavbarProps {
 
 export function AdminNavbar({ onMobileMenuOpen }: AdminNavbarProps) {
   const { logout } = useAuth();
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <header className="h-16 bg-white border-b border-gray-100 flex items-center px-4 sm:px-6 justify-between sticky top-0 z-30 shadow-sm">
-      {/* Left: Mobile hamburger + Welcome */}
+      {/* Left: Mobile hamburger */}
       <div className="flex items-center gap-3">
-        {/* Mobile menu button */}
         <button
           onClick={onMobileMenuOpen}
           className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-[#11253e] hover:bg-[#11253e]/5 transition-colors"
@@ -22,31 +35,56 @@ export function AdminNavbar({ onMobileMenuOpen }: AdminNavbarProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-
-        {/* Welcome text */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#11253e] to-[#1a3d66] flex items-center justify-center shadow">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-[#11253e] font-semibold text-sm leading-tight">Welcome, Admin</p>
-            <p className="text-gray-400 text-[11px] leading-tight hidden sm:block">Nabhira Admin Portal</p>
-          </div>
-        </div>
       </div>
 
-      {/* Right: Sign Out */}
-      <button
-        onClick={logout}
-        className="flex items-center gap-2 bg-[#11253e] hover:bg-[#1a3556] text-white text-sm font-medium px-4 py-2 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md group"
-      >
-        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="group-hover:translate-x-0.5 transition-transform">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
-        <span className="hidden sm:inline">Sign Out</span>
-      </button>
+      {/* Right: User Profile Dropdown */}
+      <div className="relative" ref={dropdownRef}>
+        <button 
+          onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+          className="flex items-center gap-2.5 p-1.5 hover:bg-gray-50 rounded-xl transition-all duration-200"
+        >
+          <div className="text-right">
+            <p className="text-[#11253e] font-semibold text-sm leading-tight">Welcome, Admin</p>
+            <p className="text-gray-400 text-[11px] leading-tight hidden sm:block text-right">Admin Portal</p>
+          </div>
+          <div className="relative">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#11253e] to-[#1a3d66] flex items-center justify-center shadow-sm">
+              <User className="w-5 h-5 text-white" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100">
+              <ChevronDown className={`w-2.5 h-2.5 text-[#11253e] transition-transform duration-300 ${showProfileDropdown ? 'rotate-180' : ''}`} />
+            </div>
+          </div>
+        </button>
+
+        {showProfileDropdown && (
+          <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50 animate-in fade-in zoom-in duration-200 origin-top-right">
+            <div className="px-5 py-3 border-b border-gray-50 mb-1">
+              <p className="text-sm font-bold text-[#11253e]">Administrator</p>
+              <p className="text-[11px] text-gray-400 font-medium tracking-tight">admin@hutech.com</p>
+            </div>
+            
+            <div className="px-2 space-y-0.5">
+              <button className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                <User className="w-3.5 h-3.5" />
+                My Profile
+              </button>
+              <button className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                <Settings className="w-3.5 h-3.5" />
+                Settings
+              </button>
+              <div className="h-px bg-gray-50 my-1.5 mx-3" />
+              <button 
+                onClick={logout}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </header>
   );
 }
