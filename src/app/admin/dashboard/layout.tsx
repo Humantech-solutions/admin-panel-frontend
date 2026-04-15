@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AdminSidebar } from "../components/AdminSidebar";
 import { AdminNavbar } from "../components/AdminNavbar";
@@ -23,12 +23,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen((prev) => !prev)}
-        isMobileOpen={mobileSidebarOpen}
-        onMobileClose={() => setMobileSidebarOpen(false)}
-      />
+      <Suspense fallback={<div className="w-60 h-screen bg-[#11253e]" />}>
+        <AdminSidebar
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen((prev) => !prev)}
+          isMobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
+      </Suspense>
       <div className="flex flex-col flex-1 overflow-hidden">
         <AdminNavbar onMobileMenuOpen={() => setMobileSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 text-black">
