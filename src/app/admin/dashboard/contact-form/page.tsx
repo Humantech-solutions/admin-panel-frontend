@@ -2,14 +2,14 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { 
-  MessageSquare, 
-  Mail, 
-  User, 
-  Globe, 
-  ExternalLink, 
-  Eye, 
-  Search, 
+import {
+  MessageSquare,
+  Mail,
+  User,
+  Globe,
+  ExternalLink,
+  Eye,
+  Search,
   Calendar,
   X,
   Clock,
@@ -33,9 +33,7 @@ interface ContactInquiry {
 function ContactDashboardContent() {
   const searchParams = useSearchParams();
   const categoryFilter = searchParams.get('category');
-  const projectFilter = searchParams.get('project') || 'nabhira';
-  const projectName = projectFilter === 'hutech' ? 'Hutech Solutions' : projectFilter === 'hulabs' ? 'Hutech Labs' : 'Nabhira Technologies';
-  
+
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,11 +43,10 @@ function ContactDashboardContent() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      let url = `http://localhost:8000/api/contact/all?project=${projectFilter}`;
-      if (categoryFilter) {
-        url += `&category=${categoryFilter}`;
-      }
-        
+      const url = categoryFilter
+        ? `http://localhost:8000/api/contact/all?category=${categoryFilter}`
+        : `http://localhost:8000/api/contact/all`;
+
       const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`
@@ -68,9 +65,9 @@ function ContactDashboardContent() {
 
   useEffect(() => {
     fetchInquiries();
-  }, [categoryFilter, projectFilter]);
+  }, [categoryFilter]);
 
-  const filteredInquiries = inquiries.filter(item => 
+  const filteredInquiries = inquiries.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.subject.toLowerCase().includes(searchTerm.toLowerCase())
@@ -101,17 +98,17 @@ function ContactDashboardContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#11253e]">
-            {projectName} — {categoryFilter ? `${categoryFilter} Inquiries` : "All Contact Inquiries"}
+            {categoryFilter ? `${categoryFilter} Inquiries` : "All Contact Inquiries"}
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Showing {filteredInquiries.length} results {categoryFilter && `for ${categoryFilter}`}
           </p>
         </div>
-        
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search messages..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -158,23 +155,23 @@ function ContactDashboardContent() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider
-                        ${item.category === 'Contact' ? 'bg-indigo-50 text-indigo-600' : 
-                          item.category === 'Client' ? 'bg-purple-50 text-purple-600' : 
-                          item.category === 'Footer' ? 'bg-teal-50 text-teal-600' : 
-                          'bg-gray-100 text-gray-600'}`}>
+                        ${item.category === 'Contact' ? 'bg-indigo-50 text-indigo-600' :
+                          item.category === 'Client' ? 'bg-purple-50 text-purple-600' :
+                            item.category === 'Footer' ? 'bg-teal-50 text-teal-600' :
+                              'bg-gray-100 text-gray-600'}`}>
                         {item.category}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider
-                          ${item.status === 'New' ? 'bg-orange-50 text-orange-600' : 
-                            item.status === 'Contacted' ? 'bg-blue-50 text-blue-600' : 
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider
+                          ${item.status === 'New' ? 'bg-orange-50 text-orange-600' :
+                          item.status === 'Contacted' ? 'bg-blue-50 text-blue-600' :
                             'bg-green-50 text-green-600'}`}>
-                          {item.status}
-                        </span>
+                        {item.status}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+                      <button
                         onClick={() => setSelectedInquiry(item)}
                         className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
                         title="View Details"
@@ -215,14 +212,14 @@ function ContactDashboardContent() {
                   <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Category: {selectedInquiry.category}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedInquiry(null)}
                 className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-[#11253e]"
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-8 grid grid-cols-1 md:grid-cols-12 gap-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
               {/* Left Column: Client Info */}
               <div className="md:col-span-5 space-y-6">
@@ -236,7 +233,7 @@ function ContactDashboardContent() {
                       <p className="text-[#11253e] font-bold text-sm">{selectedInquiry.name}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
                       <Mail size={14} />
@@ -261,15 +258,15 @@ function ContactDashboardContent() {
                 <div className="bg-[#f8f9fa] rounded-2xl p-5 border border-gray-100 space-y-4">
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                       <Globe size={12} /> Source Page
+                      <Globe size={12} /> Source Page
                     </p>
                     <p className="text-[#11253e] font-bold text-[11px] leading-snug">{selectedInquiry.pageTitle || "Quick Contact"}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Source URL</p>
-                    <a 
-                      href={selectedInquiry.pageUrl} 
-                      target="_blank" 
+                    <a
+                      href={selectedInquiry.pageUrl}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-[#f99d1c] text-[10px] break-all font-mono hover:underline flex items-center gap-1"
                     >
@@ -279,21 +276,21 @@ function ContactDashboardContent() {
                 </div>
 
                 <div className="pt-4 border-t border-gray-100">
-                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Action Status</p>
-                   <div className="flex gap-2">
-                      {['New', 'Contacted', 'Closed'].map(st => (
-                        <button
-                          key={st}
-                          onClick={() => updateStatus(selectedInquiry._id, st)}
-                          className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all
-                            ${selectedInquiry.status === st 
-                              ? 'bg-[#11253e] text-white border-[#11253e]' 
-                              : 'bg-white text-gray-400 border-gray-100 hover:border-[#f99d1c] hover:text-[#f99d1c]'}`}
-                        >
-                          {st}
-                        </button>
-                      ))}
-                   </div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Action Status</p>
+                  <div className="flex gap-2">
+                    {['New', 'Contacted', 'Closed'].map(st => (
+                      <button
+                        key={st}
+                        onClick={() => updateStatus(selectedInquiry._id, st)}
+                        className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all
+                            ${selectedInquiry.status === st
+                            ? 'bg-[#11253e] text-white border-[#11253e]'
+                            : 'bg-white text-gray-400 border-gray-100 hover:border-[#f99d1c] hover:text-[#f99d1c]'}`}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -313,7 +310,7 @@ function ContactDashboardContent() {
                       "{selectedInquiry.message}"
                     </p>
                   </div>
-                  
+
                   {selectedInquiry.status === 'Closed' && (
                     <div className="flex items-center gap-2 text-[#f99d1c] pt-4">
                       <CheckCircle2 size={16} />

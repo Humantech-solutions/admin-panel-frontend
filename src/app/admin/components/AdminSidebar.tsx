@@ -5,13 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import footerLogo from "@/assets/footer.png";
-import { 
-  ChevronDown, 
-  ChevronRight, 
-  Mail, 
-  Calendar, 
-  Briefcase, 
-  MessageSquare, 
+import {
+  ChevronDown,
+  ChevronRight,
+  Mail,
+  Calendar,
+  Briefcase,
+  MessageSquare,
   CheckCircle,
   FileText,
   User,
@@ -20,45 +20,50 @@ import {
   Beaker
 } from "lucide-react";
 
-const projectConfigs: Record<string, { logo: string, name: string }> = {
+const projectNavConfigs: Record<string, { logo: string, name: string, items: any[] }> = {
   nabhira: {
     logo: "Nabhira",
     name: "Nabhira Technologies",
+    items: [
+      {
+        label: "Contact Form",
+        href: "/admin/dashboard/nabhira/contact-form",
+        icon: <Mail size={20} />,
+        subItems: [
+          { label: "All Inquiries", href: "/admin/dashboard/nabhira/contact-form" },
+          { label: "Contact Form", href: "/admin/dashboard/nabhira/contact-form?category=Contact" },
+          { label: "Clients Form", href: "/admin/dashboard/nabhira/contact-form?category=Client" },
+          { label: "Footer Contact Form", href: "/admin/dashboard/nabhira/contact-form?category=Footer" },
+          { label: "Industries", href: "/admin/dashboard/nabhira/contact-form?category=Industries" },
+          { label: "Solutions", href: "/admin/dashboard/nabhira/contact-form?category=Solutions" },
+          { label: "Case Study", href: "/admin/dashboard/nabhira/contact-form?category=Case Study" },
+          { label: "Blog", href: "/admin/dashboard/nabhira/contact-form?category=Blog" },
+          { label: "Service", href: "/admin/dashboard/nabhira/contact-form?category=Service" },
+          { label: "Career Contact", href: "/admin/dashboard/nabhira/contact-form?category=Career" },
+        ]
+      },
+      { label: "Event Form", href: "/admin/dashboard/nabhira/event-form", icon: <Calendar size={20} /> },
+      { label: "Career", href: "/admin/dashboard/nabhira/career", icon: <Briefcase size={20} /> },
+      { label: "Career Mails", href: "/admin/dashboard/nabhira/career-mails", icon: <FileText size={20} /> },
+      { label: "Sales Mails", href: "/admin/dashboard/nabhira/sales-mails", icon: <FileText size={20} /> },
+      { label: "Chat Queries", href: "/admin/dashboard/nabhira/chat-queries", icon: <MessageSquare size={20} /> },
+    ]
   },
   hutech: {
     logo: "Hutech",
-    name: "Hutech Solutions",
+    name: "Hutech Website",
+    items: [
+      { label: "Hutech Dashboard", href: "/admin/dashboard/hutech", icon: <LayoutDashboard size={20} /> },
+    ]
   },
   hulabs: {
     logo: "Hulabs",
     name: "Hulabs Website",
+    items: [
+      { label: "Hulabs Dashboard", href: "/admin/dashboard/hulabs", icon: <Beaker size={20} /> },
+    ]
   }
 };
-
-const getNavItems = (project: string) => [
-  {
-    label: "Contact Form",
-    href: `/admin/dashboard/contact-form?project=${project}`,
-    icon: <Mail size={20} />,
-    subItems: [
-      { label: "All Inquiries", href: `/admin/dashboard/contact-form?project=${project}` },
-      { label: "Contact Form", href: `/admin/dashboard/contact-form?project=${project}&category=Contact` },
-      { label: "Clients Form", href: `/admin/dashboard/contact-form?project=${project}&category=Client` },
-      { label: "Footer Contact Form", href: `/admin/dashboard/contact-form?project=${project}&category=Footer` },
-      { label: "Industries", href: `/admin/dashboard/contact-form?project=${project}&category=Industries` },
-      { label: "Solutions", href: `/admin/dashboard/contact-form?project=${project}&category=Solutions` },
-      { label: "Case Study", href: `/admin/dashboard/contact-form?project=${project}&category=Case Study` },
-      { label: "Blog", href: `/admin/dashboard/contact-form?project=${project}&category=Blog` },
-      { label: "Service", href: `/admin/dashboard/contact-form?project=${project}&category=Service` },
-      { label: "Career Contact", href: `/admin/dashboard/contact-form?project=${project}&category=Career` },
-    ]
-  },
-  { label: "Event Form", href: `/admin/dashboard/event-form?project=${project}`, icon: <Calendar size={20} /> },
-  { label: "Career", href: `/admin/dashboard/career?project=${project}`, icon: <Briefcase size={20} /> },
-  { label: "Career Mails", href: `/admin/dashboard/career-mails?project=${project}`, icon: <FileText size={20} /> },
-  { label: "Sales Mails", href: `/admin/dashboard/sales-mails?project=${project}`, icon: <FileText size={20} /> },
-  { label: "Chat Queries", href: `/admin/dashboard/chat-queries?project=${project}`, icon: <MessageSquare size={20} /> },
-];
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -72,12 +77,12 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
   const searchParams = useSearchParams();
   const [expandedItems, setExpandedItems] = useState<string[]>(["Contact Form"]);
 
-  const currentProject = searchParams.get('project') || 'nabhira';
-  const config = projectConfigs[currentProject] || projectConfigs.nabhira;
-  const navItems = getNavItems(currentProject);
+  const currentProject = pathname.split('/')[3] || 'nabhira';
+  const config = projectNavConfigs[currentProject] || projectNavConfigs.nabhira;
+  const navItems = config.items;
 
   const toggleExpand = (label: string) => {
-    setExpandedItems(prev => 
+    setExpandedItems(prev =>
       prev.includes(label) ? prev.filter(i => i !== label) : [...prev, label]
     );
   };
@@ -120,12 +125,11 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
         {navItems.map((item) => {
           const isExpanded = expandedItems.includes(item.label);
           const hasSubItems = item.subItems && item.subItems.length > 0;
-          const itemPath = item.href.split('?')[0];
-          const isActive = pathname === itemPath || (hasSubItems && pathname.startsWith(itemPath));
+          const isActive = pathname === item.href || (hasSubItems && pathname.startsWith(item.href));
 
           return (
             <div key={item.label} className="space-y-1">
-              <div 
+              <div
                 className={`flex items-center gap-3 rounded-xl transition-all duration-200 group relative cursor-pointer
                   ${isOpen || mobile ? "px-3 py-2.5" : "px-2 py-2.5 justify-center"}
                   ${isActive && !hasSubItems
@@ -162,7 +166,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
                     )}
                   </div>
                 )}
-                
+
                 {/* Tooltip for collapsed state */}
                 {!isOpen && !mobile && (
                   <span className="absolute left-full ml-2 px-2.5 py-1.5 bg-[#11253e] border border-white/10 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-lg">
@@ -185,8 +189,8 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
                         href={sub.href}
                         onClick={mobile ? onMobileClose : undefined}
                         className={`block py-2 px-3 text-xs rounded-lg transition-all
-                          ${isSubActive 
-                            ? "text-[#f99d1c] font-bold bg-[#f99d1c]/10" 
+                          ${isSubActive
+                            ? "text-[#f99d1c] font-bold bg-[#f99d1c]/10"
                             : "text-white/40 hover:text-white hover:bg-white/5"
                           }`}
                       >
@@ -229,12 +233,11 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
           background: rgba(255, 255, 255, 0.2);
         }
       `}</style>
-      
+
       {/* Desktop sidebar */}
       <aside
-        className={`hidden md:flex flex-col h-screen bg-[#11253e] border-r border-white/10 sticky top-0 transition-all duration-300 ease-in-out overflow-hidden shrink-0 ${
-          isOpen ? "w-60" : "w-16"
-        }`}
+        className={`hidden md:flex flex-col h-screen bg-[#11253e] border-r border-white/10 sticky top-0 transition-all duration-300 ease-in-out overflow-hidden shrink-0 ${isOpen ? "w-60" : "w-16"
+          }`}
       >
         <SidebarContent />
       </aside>

@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { 
-  Mail, 
-  User, 
-  Globe, 
-  ExternalLink, 
-  Search, 
+import { useEffect, useState } from "react";
+import {
+  Mail,
+  User,
+  Globe,
+  ExternalLink,
+  Search,
   Calendar,
   X,
   Clock,
@@ -29,11 +28,7 @@ interface CareerMail {
   createdAt: string;
 }
 
-function CareerMailsContent() {
-  const searchParams = useSearchParams();
-  const projectFilter = searchParams.get('project') || 'nabhira';
-  const projectName = projectFilter === 'hutech' ? 'Hutech Solutions' : projectFilter === 'hulabs' ? 'Hutech Labs' : 'Nabhira Technologies';
-
+export default function CareerMailsPage() {
   const [inquiries, setInquiries] = useState<CareerMail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,7 +39,7 @@ function CareerMailsContent() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch(`http://localhost:8000/api/career/all?project=${projectFilter}`, {
+      const response = await fetch("http://localhost:8000/api/career/all", {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -62,11 +57,11 @@ function CareerMailsContent() {
 
   useEffect(() => {
     fetchInquiries();
-  }, [projectFilter]);
+  }, []);
 
   const filteredInquiries = inquiries.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.email.toLowerCase().includes(searchTerm.toLowerCase());
+      item.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "all" || item.type === typeFilter;
     return matchesSearch && matchesType;
   });
@@ -75,24 +70,24 @@ function CareerMailsContent() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#11253e]">{projectName} — Career Mails</h1>
+          <h1 className="text-2xl font-bold text-[#11253e]">Career Mails</h1>
           <p className="text-gray-500 text-sm mt-1">
             Tracking {filteredInquiries.length} interactions from the careers page.
           </p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#f99d1c]/20 focus:border-[#f99d1c] w-full md:w-64 transition-all"
             />
           </div>
-          <select 
+          <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#f99d1c] appearance-none cursor-pointer pr-10 relative"
@@ -146,12 +141,12 @@ function CareerMailsContent() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                        <span className="text-[10px] text-gray-500 font-medium">
-                          {new Date(item.appliedAt || item.createdAt).toLocaleDateString()}
-                        </span>
+                      <span className="text-[10px] text-gray-500 font-medium">
+                        {new Date(item.appliedAt || item.createdAt).toLocaleDateString()}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+                      <button
                         onClick={() => setSelectedMail(item)}
                         className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
                       >
@@ -193,14 +188,14 @@ function CareerMailsContent() {
                   <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Candidate: {selectedMail.name}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedMail(null)}
                 className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400"
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-8 space-y-8">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
@@ -238,25 +233,17 @@ function CareerMailsContent() {
               </div>
 
               <div className="flex gap-3">
-                 <button className="flex-1 bg-[#11253e] text-white py-3.5 rounded-2xl font-bold text-[11px] uppercase tracking-widest">
-                   Send Response
-                 </button>
-                 <button className="px-6 border border-gray-100 rounded-2xl text-gray-400 hover:text-[#f99d1c] hover:border-[#f99d1c] transition-all">
-                    <Download size={18} />
-                 </button>
+                <button className="flex-1 bg-[#11253e] text-white py-3.5 rounded-2xl font-bold text-[11px] uppercase tracking-widest">
+                  Send Response
+                </button>
+                <button className="px-6 border border-gray-100 rounded-2xl text-gray-400 hover:text-[#f99d1c] hover:border-[#f99d1c] transition-all">
+                  <Download size={18} />
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-export default function CareerMailsPage() {
-  return (
-    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Career Mails...</div>}>
-      <CareerMailsContent />
-    </Suspense>
   );
 }
