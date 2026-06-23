@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
   Briefcase, 
   Mail, 
@@ -23,7 +24,11 @@ interface CareerApplication {
   appliedAt: string;
 }
 
-export default function CareerPage() {
+function CareerContent() {
+  const searchParams = useSearchParams();
+  const projectFilter = searchParams.get('project') || 'nabhira';
+  const projectName = projectFilter === 'hutech' ? 'Hutech Solutions' : projectFilter === 'hulabs' ? 'Hutech Labs' : 'Nabhira Technologies';
+
   const [applications, setApplications] = useState<CareerApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,7 +37,7 @@ export default function CareerPage() {
   const fetchApplications = async () => {
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch("http://localhost:8000/api/career/all", {
+      const response = await fetch(`http://localhost:8000/api/career/all?project=${projectFilter}`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -50,7 +55,7 @@ export default function CareerPage() {
 
   useEffect(() => {
     fetchApplications();
-  }, []);
+  }, [projectFilter]);
 
   const filteredApps = applications.filter(app => 
     app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -62,7 +67,7 @@ export default function CareerPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#11253e]">Career Applications</h1>
+          <h1 className="text-2xl font-bold text-[#11253e]">{projectName} — Career Applications</h1>
           <p className="text-gray-500 text-sm mt-1">Manage and review candidates who applied through the website.</p>
         </div>
         
@@ -219,5 +224,13 @@ export default function CareerPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CareerPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Applications...</div>}>
+      <CareerContent />
+    </Suspense>
   );
 }

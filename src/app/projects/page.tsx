@@ -175,7 +175,7 @@ export default function ProjectsPage() {
                     View Project Site
                   </button>
                   <button 
-                    onClick={() => window.open(`/admin/dashboard/${activeTab}`, "_blank")}
+                    onClick={() => window.open(`/admin/dashboard?project=${activeTab}`, "_blank")}
                     className="px-8 py-3.5 bg-black/20 text-white rounded-2xl font-bold hover:bg-black/30 transition-all border border-white/20 flex items-center gap-2"
                   >
                     <History className="w-4 h-4" />

@@ -33,6 +33,8 @@ interface ContactInquiry {
 function ContactDashboardContent() {
   const searchParams = useSearchParams();
   const categoryFilter = searchParams.get('category');
+  const projectFilter = searchParams.get('project') || 'nabhira';
+  const projectName = projectFilter === 'hutech' ? 'Hutech Solutions' : projectFilter === 'hulabs' ? 'Hutech Labs' : 'Nabhira Technologies';
   
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,9 +45,10 @@ function ContactDashboardContent() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const url = categoryFilter 
-        ? `http://localhost:8000/api/contact/all?category=${categoryFilter}`
-        : `http://localhost:8000/api/contact/all`;
+      let url = `http://localhost:8000/api/contact/all?project=${projectFilter}`;
+      if (categoryFilter) {
+        url += `&category=${categoryFilter}`;
+      }
         
       const response = await fetch(url, {
         headers: {
@@ -65,7 +68,7 @@ function ContactDashboardContent() {
 
   useEffect(() => {
     fetchInquiries();
-  }, [categoryFilter]);
+  }, [categoryFilter, projectFilter]);
 
   const filteredInquiries = inquiries.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,7 +101,7 @@ function ContactDashboardContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#11253e]">
-            {categoryFilter ? `${categoryFilter} Inquiries` : "All Contact Inquiries"}
+            {projectName} — {categoryFilter ? `${categoryFilter} Inquiries` : "All Contact Inquiries"}
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Showing {filteredInquiries.length} results {categoryFilter && `for ${categoryFilter}`}

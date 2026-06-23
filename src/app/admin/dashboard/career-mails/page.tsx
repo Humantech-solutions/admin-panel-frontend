@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
   Mail, 
   User, 
@@ -28,7 +29,11 @@ interface CareerMail {
   createdAt: string;
 }
 
-export default function CareerMailsPage() {
+function CareerMailsContent() {
+  const searchParams = useSearchParams();
+  const projectFilter = searchParams.get('project') || 'nabhira';
+  const projectName = projectFilter === 'hutech' ? 'Hutech Solutions' : projectFilter === 'hulabs' ? 'Hutech Labs' : 'Nabhira Technologies';
+
   const [inquiries, setInquiries] = useState<CareerMail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,7 +44,7 @@ export default function CareerMailsPage() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch("http://localhost:8000/api/career/all", {
+      const response = await fetch(`http://localhost:8000/api/career/all?project=${projectFilter}`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -57,7 +62,7 @@ export default function CareerMailsPage() {
 
   useEffect(() => {
     fetchInquiries();
-  }, []);
+  }, [projectFilter]);
 
   const filteredInquiries = inquiries.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,7 +75,7 @@ export default function CareerMailsPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#11253e]">Career Mails</h1>
+          <h1 className="text-2xl font-bold text-[#11253e]">{projectName} — Career Mails</h1>
           <p className="text-gray-500 text-sm mt-1">
             Tracking {filteredInquiries.length} interactions from the careers page.
           </p>
@@ -245,5 +250,13 @@ export default function CareerMailsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CareerMailsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Career Mails...</div>}>
+      <CareerMailsContent />
+    </Suspense>
   );
 }
