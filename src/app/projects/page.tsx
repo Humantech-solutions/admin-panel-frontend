@@ -70,15 +70,13 @@ export default function ProjectsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${
-                activeTab === tab.id
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeTab === tab.id
                   ? "bg-white/10 text-white shadow-lg ring-1 ring-white/20"
                   : "text-white/60 hover:bg-white/5 hover:text-white"
-              }`}
+                }`}
             >
-              <span className={`p-2.5 rounded-xl transition-colors ${
-                activeTab === tab.id ? "bg-[#f99d1c] text-white" : "bg-white/5 text-white/40 group-hover:text-white"
-              }`}>
+              <span className={`p-2.5 rounded-xl transition-colors ${activeTab === tab.id ? "bg-[#f99d1c] text-white" : "bg-white/5 text-white/40 group-hover:text-white"
+                }`}>
                 {tab.icon}
               </span>
               <span className="font-bold text-[15px]">{tab.name}</span>
@@ -109,7 +107,7 @@ export default function ProjectsPage() {
           </div>
 
           <div className="relative" ref={dropdownRef}>
-            <button 
+            <button
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
               className="flex items-center gap-4 hover:bg-gray-50 p-2 rounded-2xl transition-all duration-200"
             >
@@ -133,7 +131,7 @@ export default function ProjectsPage() {
                   <p className="text-sm font-bold text-[#11253e]">Admin User</p>
                   <p className="text-xs text-gray-400">admin@nabhira.com</p>
                 </div>
-                
+
                 <div className="px-2 space-y-1">
                   <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
                     <User className="w-4 h-4" />
@@ -144,7 +142,7 @@ export default function ProjectsPage() {
                     Account Settings
                   </button>
                   <div className="h-px bg-gray-50 my-2 mx-4" />
-                  <button 
+                  <button
                     onClick={logout}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                   >
@@ -168,13 +166,13 @@ export default function ProjectsPage() {
                   {tabs.find(t => t.id === activeTab)?.description} Control all aspects of your digital ecosystem from this unified dashboard.
                 </p>
                 <div className="flex gap-4">
-                  <button 
+                  <button
                     onClick={handleViewSite}
                     className="px-8 py-3.5 bg-white text-[#11253e] rounded-2xl font-bold hover:bg-white/90 transition-all shadow-xl"
                   >
                     View Project Site
                   </button>
-                  <button 
+                  <button
                     onClick={() => window.open(`/admin/dashboard/${activeTab}`, "_blank")}
                     className="px-8 py-3.5 bg-black/20 text-white rounded-2xl font-bold hover:bg-black/30 transition-all border border-white/20 flex items-center gap-2"
                   >
@@ -183,7 +181,7 @@ export default function ProjectsPage() {
                   </button>
                 </div>
               </div>
-              
+
               {/* Decorative elements */}
               <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl pointer-events-none" />
@@ -200,10 +198,9 @@ export default function ProjectsPage() {
                   <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">{stat.title}</p>
                   <div className="flex items-end justify-between">
                     <span className="text-3xl font-bold text-[#11253e]">{stat.value}</span>
-                    <span className={`text-[12px] font-bold px-2 py-0.5 rounded-md ${
-                        stat.change.includes("+") ? "bg-green-50 text-green-600" : "bg-blue-50 text-blue-600"
-                    }`}>
-                        {stat.change}
+                    <span className={`text-[12px] font-bold px-2 py-0.5 rounded-md ${stat.change.includes("+") ? "bg-green-50 text-green-600" : "bg-blue-50 text-blue-600"
+                      }`}>
+                      {stat.change}
                     </span>
                   </div>
                 </div>

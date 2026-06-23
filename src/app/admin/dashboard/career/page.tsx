@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  Briefcase, 
-  Mail, 
-  Linkedin, 
-  ExternalLink, 
-  Eye, 
-  Search, 
+import {
+  Briefcase,
+  Mail,
+  Linkedin,
+  ExternalLink,
+  Eye,
+  Search,
   Calendar,
   X,
   FileText
@@ -52,7 +52,7 @@ export default function CareerPage() {
     fetchApplications();
   }, []);
 
-  const filteredApps = applications.filter(app => 
+  const filteredApps = applications.filter(app =>
     app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.pageTitle.toLowerCase().includes(searchTerm.toLowerCase())
@@ -65,11 +65,11 @@ export default function CareerPage() {
           <h1 className="text-2xl font-bold text-[#11253e]">Career Applications</h1>
           <p className="text-gray-500 text-sm mt-1">Manage and review candidates who applied through the website.</p>
         </div>
-        
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search applicants..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -110,9 +110,9 @@ export default function CareerPage() {
                         <span className="text-sm text-[#11253e] font-medium max-w-[200px] truncate" title={app.pageTitle}>
                           {app.pageTitle.split(' — ')[0]}
                         </span>
-                        <a 
-                          href={app.pageUrl} 
-                          target="_blank" 
+                        <a
+                          href={app.pageUrl}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-[10px] text-[#f99d1c] hover:underline flex items-center gap-1 mt-0.5"
                         >
@@ -126,7 +126,7 @@ export default function CareerPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+                      <button
                         onClick={() => setSelectedApp(app)}
                         className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
                         title="View Details"
@@ -167,14 +167,14 @@ export default function CareerPage() {
                   <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Ref: {selectedApp._id.slice(-6).toUpperCase()}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedApp(null)}
                 className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-[#11253e]"
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-8 space-y-8">
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-1">
@@ -189,9 +189,9 @@ export default function CareerPage() {
 
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">LinkedIn Profile</p>
-                <a 
-                  href={selectedApp.linkedin} 
-                  target="_blank" 
+                <a
+                  href={selectedApp.linkedin}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#f99d1c] font-medium flex items-center gap-2 hover:underline"
                 >

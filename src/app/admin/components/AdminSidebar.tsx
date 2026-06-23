@@ -5,13 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import footerLogo from "@/assets/footer.png";
-import { 
-  ChevronDown, 
-  ChevronRight, 
-  Mail, 
-  Calendar, 
-  Briefcase, 
-  MessageSquare, 
+import {
+  ChevronDown,
+  ChevronRight,
+  Mail,
+  Calendar,
+  Briefcase,
+  MessageSquare,
   CheckCircle,
   FileText,
   User,
@@ -82,7 +82,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
   const navItems = config.items;
 
   const toggleExpand = (label: string) => {
-    setExpandedItems(prev => 
+    setExpandedItems(prev =>
       prev.includes(label) ? prev.filter(i => i !== label) : [...prev, label]
     );
   };
@@ -129,7 +129,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
 
           return (
             <div key={item.label} className="space-y-1">
-              <div 
+              <div
                 className={`flex items-center gap-3 rounded-xl transition-all duration-200 group relative cursor-pointer
                   ${isOpen || mobile ? "px-3 py-2.5" : "px-2 py-2.5 justify-center"}
                   ${isActive && !hasSubItems
@@ -166,7 +166,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
                     )}
                   </div>
                 )}
-                
+
                 {/* Tooltip for collapsed state */}
                 {!isOpen && !mobile && (
                   <span className="absolute left-full ml-2 px-2.5 py-1.5 bg-[#11253e] border border-white/10 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-lg">
@@ -189,8 +189,8 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
                         href={sub.href}
                         onClick={mobile ? onMobileClose : undefined}
                         className={`block py-2 px-3 text-xs rounded-lg transition-all
-                          ${isSubActive 
-                            ? "text-[#f99d1c] font-bold bg-[#f99d1c]/10" 
+                          ${isSubActive
+                            ? "text-[#f99d1c] font-bold bg-[#f99d1c]/10"
                             : "text-white/40 hover:text-white hover:bg-white/5"
                           }`}
                       >
@@ -233,12 +233,11 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
           background: rgba(255, 255, 255, 0.2);
         }
       `}</style>
-      
+
       {/* Desktop sidebar */}
       <aside
-        className={`hidden md:flex flex-col h-screen bg-[#11253e] border-r border-white/10 sticky top-0 transition-all duration-300 ease-in-out overflow-hidden shrink-0 ${
-          isOpen ? "w-60" : "w-16"
-        }`}
+        className={`hidden md:flex flex-col h-screen bg-[#11253e] border-r border-white/10 sticky top-0 transition-all duration-300 ease-in-out overflow-hidden shrink-0 ${isOpen ? "w-60" : "w-16"
+          }`}
       >
         <SidebarContent />
       </aside>
