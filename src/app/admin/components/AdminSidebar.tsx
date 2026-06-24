@@ -21,18 +21,19 @@ import {
 } from "lucide-react";
 
 const projectConfigs: Record<string, { logo: string, name: string }> = {
-  nabhira: {
-    logo: "Nabhira",
-    name: "Nabhira Technologies",
-  },
   hutech: {
     logo: "Hutech",
     name: "Hutech Website",
   },
-  hulabs: {
-    logo: "Hulabs",
-    name: "Hulabs Website",
-  }
+  nabhira: {
+    logo: "Nabhira",
+    name: "Nabhira Technologies",
+  },
+
+  // hulabs: {
+  //   logo: "Hulabs",
+  //   name: "Hulabs Website",
+  // }
 };
 
 const getNavItems = (project: string) => [

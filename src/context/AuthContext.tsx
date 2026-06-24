@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "@/config/api";
 
 interface User {
+  name?: string;
   email: string;
 }
 
@@ -22,6 +23,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<AuthResult>;
   verifyMfa: (mfaToken: string, otp: string) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string) => Promise<AuthResult>;
   logout: () => void;
 }
 
@@ -51,9 +53,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const storedAuth = sessionStorage.getItem("adminAuth");
-    if (storedAuth !== "true") {
+    const token = sessionStorage.getItem("adminToken");
+    if (storedAuth !== "true" || !token) {
       setIsAuthenticated(false);
       setUser(null);
+    } else {
+      fetch(`${API_BASE_URL}/api/users/profile`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.user) {
+          setUser(data.user);
+          sessionStorage.setItem("adminUser", JSON.stringify(data.user));
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching profile on mount:", err);
+      });
     }
   }, []);
 
@@ -124,6 +143,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const register = async (name: string, email: string, password: string): Promise<AuthResult> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        return { success: true, message: data.message };
+      } else {
+        return { success: false, error: data.message || "Registration failed" };
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      return { success: false, error: "Unable to connect to authentication server." };
+    }
+  };
+
   const logout = () => {
     setIsAuthenticated(false);
     setUser(null);
@@ -134,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, verifyMfa, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, verifyMfa, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

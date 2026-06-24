@@ -15,13 +15,15 @@ import {
   X,
   Clock,
   Tag,
-  CheckCircle2
+  CheckCircle2,
+  Phone
 } from "lucide-react";
 
 interface ContactInquiry {
   _id: string;
   name: string;
   email: string;
+  phone?: string;
   subject: string;
   message: string;
   pageTitle: string;
@@ -246,6 +248,18 @@ function ContactDashboardContent() {
                       <p className="text-[#11253e] font-medium text-sm">{selectedInquiry.email}</p>
                     </div>
                   </div>
+
+                  {selectedInquiry.phone && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                        <Phone size={14} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Phone Number</p>
+                        <p className="text-[#11253e] font-medium text-sm">{selectedInquiry.phone}</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
