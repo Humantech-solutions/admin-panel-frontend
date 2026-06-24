@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MessageCircle, User, Globe, Search, Calendar, Clock, X, Phone, Mail } from "lucide-react";
+import { API_BASE_URL } from "@/config/api";
 
 interface ChatQuery {
   _id: string;
@@ -22,7 +23,7 @@ export default function ChatQueriesPage() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch("http://localhost:8000/api/chat/all", {
+      const response = await fetch(`${API_BASE_URL}/api/chat/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();

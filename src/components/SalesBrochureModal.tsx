@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Mail, User } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
+import { API_BASE_URL } from "@/config/api";
 
 interface SalesBrochureModalProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ export function SalesBrochureModal({ isOpen, onClose, pageTitle }: SalesBrochure
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:8000/api/sales/brochure", {
+      const response = await fetch(`${API_BASE_URL}/api/sales/brochure`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

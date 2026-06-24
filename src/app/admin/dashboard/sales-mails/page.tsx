@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/config/api";
 import { 
   Mail, 
   User, 
@@ -34,7 +35,7 @@ export default function SalesMailsPage() {
   const fetchMails = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/api/sales/all");
+      const response = await fetch(`${API_BASE_URL}/api/sales/all`);
       const data = await response.json();
       if (data.success) {
         setMails(data.mails);

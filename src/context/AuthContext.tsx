@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/config/api";
 
 interface User {
   email: string;
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<AuthResult> => {
     try {
-      const response = await fetch("http://localhost:8000/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -97,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyMfa = async (mfaToken: string, otp: string): Promise<AuthResult> => {
     try {
-      const response = await fetch("http://localhost:8000/api/auth/verify-mfa", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify-mfa`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

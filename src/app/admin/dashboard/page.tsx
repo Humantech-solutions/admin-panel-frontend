@@ -1,4 +1,20 @@
-export default function DashboardPage() {
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+function DashboardContent() {
+  const searchParams = useSearchParams();
+  const project = searchParams.get("project") || "nabhira";
+
+  const cards = [
+    { label: "Contact Form", desc: "View & manage contact enquiries", icon: "✉️", href: `/admin/dashboard/contact-form?project=${project}`, color: "from-blue-500/10 to-blue-600/5", border: "border-blue-200" },
+    { label: "Event Form", desc: "Add and track upcoming events", icon: "📅", href: `/admin/dashboard/event-form?project=${project}`, color: "from-purple-500/10 to-purple-600/5", border: "border-purple-200" },
+    { label: "Career", desc: "Manage job openings & listings", icon: "💼", href: `/admin/dashboard/career?project=${project}`, color: "from-green-500/10 to-green-600/5", border: "border-green-200" },
+    { label: "Career Mails", desc: "Review incoming job applications", icon: "📬", href: `/admin/dashboard/career-mails?project=${project}`, color: "from-orange-500/10 to-orange-600/5", border: "border-orange-200" },
+    { label: "Chatbot", desc: "Set up & monitor chatbot responses", icon: "💬", href: `/admin/dashboard/chatbot?project=${project}`, color: "from-pink-500/10 to-pink-600/5", border: "border-pink-200" },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
@@ -16,13 +32,7 @@ export default function DashboardPage() {
 
       {/* Quick-access cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {[
-          { label: "Contact Form", desc: "View & manage contact enquiries", icon: "✉️", href: "/admin/dashboard/contact-form", color: "from-blue-500/10 to-blue-600/5", border: "border-blue-200" },
-          { label: "Event Form", desc: "Add and track upcoming events", icon: "📅", href: "/admin/dashboard/event-form", color: "from-purple-500/10 to-purple-600/5", border: "border-purple-200" },
-          { label: "Career", desc: "Manage job openings & listings", icon: "💼", href: "/admin/dashboard/career", color: "from-green-500/10 to-green-600/5", border: "border-green-200" },
-          { label: "Career Mails", desc: "Review incoming job applications", icon: "📬", href: "/admin/dashboard/career-mails", color: "from-orange-500/10 to-orange-600/5", border: "border-orange-200" },
-          { label: "Chatbot", desc: "Set up & monitor chatbot responses", icon: "💬", href: "/admin/dashboard/chatbot", color: "from-pink-500/10 to-pink-600/5", border: "border-pink-200" },
-        ].map((card) => (
+        {cards.map((card) => (
           <a
             key={card.href}
             href={card.href}
@@ -45,5 +55,13 @@ export default function DashboardPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Dashboard...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }

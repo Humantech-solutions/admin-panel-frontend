@@ -20,50 +20,45 @@ import {
   Beaker
 } from "lucide-react";
 
-const projectNavConfigs: Record<string, { logo: string, name: string, items: any[] }> = {
+const projectConfigs: Record<string, { logo: string, name: string }> = {
   nabhira: {
     logo: "Nabhira",
     name: "Nabhira Technologies",
-    items: [
-      {
-        label: "Contact Form",
-        href: "/admin/dashboard/nabhira/contact-form",
-        icon: <Mail size={20} />,
-        subItems: [
-          { label: "All Inquiries", href: "/admin/dashboard/nabhira/contact-form" },
-          { label: "Contact Form", href: "/admin/dashboard/nabhira/contact-form?category=Contact" },
-          { label: "Clients Form", href: "/admin/dashboard/nabhira/contact-form?category=Client" },
-          { label: "Footer Contact Form", href: "/admin/dashboard/nabhira/contact-form?category=Footer" },
-          { label: "Industries", href: "/admin/dashboard/nabhira/contact-form?category=Industries" },
-          { label: "Solutions", href: "/admin/dashboard/nabhira/contact-form?category=Solutions" },
-          { label: "Case Study", href: "/admin/dashboard/nabhira/contact-form?category=Case Study" },
-          { label: "Blog", href: "/admin/dashboard/nabhira/contact-form?category=Blog" },
-          { label: "Service", href: "/admin/dashboard/nabhira/contact-form?category=Service" },
-          { label: "Career Contact", href: "/admin/dashboard/nabhira/contact-form?category=Career" },
-        ]
-      },
-      { label: "Event Form", href: "/admin/dashboard/nabhira/event-form", icon: <Calendar size={20} /> },
-      { label: "Career", href: "/admin/dashboard/nabhira/career", icon: <Briefcase size={20} /> },
-      { label: "Career Mails", href: "/admin/dashboard/nabhira/career-mails", icon: <FileText size={20} /> },
-      { label: "Sales Mails", href: "/admin/dashboard/nabhira/sales-mails", icon: <FileText size={20} /> },
-      { label: "Chat Queries", href: "/admin/dashboard/nabhira/chat-queries", icon: <MessageSquare size={20} /> },
-    ]
   },
   hutech: {
     logo: "Hutech",
     name: "Hutech Website",
-    items: [
-      { label: "Hutech Dashboard", href: "/admin/dashboard/hutech", icon: <LayoutDashboard size={20} /> },
-    ]
   },
   hulabs: {
     logo: "Hulabs",
     name: "Hulabs Website",
-    items: [
-      { label: "Hulabs Dashboard", href: "/admin/dashboard/hulabs", icon: <Beaker size={20} /> },
-    ]
   }
 };
+
+const getNavItems = (project: string) => [
+  {
+    label: "Contact Form",
+    href: `/admin/dashboard/contact-form?project=${project}`,
+    icon: <Mail size={20} />,
+    subItems: [
+      { label: "All Inquiries", href: `/admin/dashboard/contact-form?project=${project}` },
+      { label: "Contact Form", href: `/admin/dashboard/contact-form?project=${project}&category=Contact` },
+      { label: "Clients Form", href: `/admin/dashboard/contact-form?project=${project}&category=Client` },
+      { label: "Footer Contact Form", href: `/admin/dashboard/contact-form?project=${project}&category=Footer` },
+      { label: "Industries", href: `/admin/dashboard/contact-form?project=${project}&category=Industries` },
+      { label: "Solutions", href: `/admin/dashboard/contact-form?project=${project}&category=Solutions` },
+      { label: "Case Study", href: `/admin/dashboard/contact-form?project=${project}&category=Case Study` },
+      { label: "Blog", href: `/admin/dashboard/contact-form?project=${project}&category=Blog` },
+      { label: "Service", href: `/admin/dashboard/contact-form?project=${project}&category=Service` },
+      { label: "Career Contact", href: `/admin/dashboard/contact-form?project=${project}&category=Career` },
+    ]
+  },
+  { label: "Event Form", href: `/admin/dashboard/event-form?project=${project}`, icon: <Calendar size={20} /> },
+  { label: "Career", href: `/admin/dashboard/career?project=${project}`, icon: <Briefcase size={20} /> },
+  { label: "Career Mails", href: `/admin/dashboard/career-mails?project=${project}`, icon: <FileText size={20} /> },
+  { label: "Sales Mails", href: `/admin/dashboard/sales-mails?project=${project}`, icon: <FileText size={20} /> },
+  { label: "Chat Queries", href: `/admin/dashboard/chat-queries?project=${project}`, icon: <MessageSquare size={20} /> },
+];
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -77,9 +72,9 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
   const searchParams = useSearchParams();
   const [expandedItems, setExpandedItems] = useState<string[]>(["Contact Form"]);
 
-  const currentProject = pathname.split('/')[3] || 'nabhira';
-  const config = projectNavConfigs[currentProject] || projectNavConfigs.nabhira;
-  const navItems = config.items;
+  const currentProject = searchParams.get('project') || 'nabhira';
+  const config = projectConfigs[currentProject] || projectConfigs.nabhira;
+  const navItems = getNavItems(currentProject);
 
   const toggleExpand = (label: string) => {
     setExpandedItems(prev =>
@@ -125,7 +120,8 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
         {navItems.map((item) => {
           const isExpanded = expandedItems.includes(item.label);
           const hasSubItems = item.subItems && item.subItems.length > 0;
-          const isActive = pathname === item.href || (hasSubItems && pathname.startsWith(item.href));
+          const itemPath = item.href.split('?')[0];
+          const isActive = pathname === itemPath || (hasSubItems && pathname.startsWith(itemPath));
 
           return (
             <div key={item.label} className="space-y-1">

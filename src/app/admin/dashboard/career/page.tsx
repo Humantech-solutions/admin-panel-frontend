@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { API_BASE_URL } from "@/config/api";
 import {
   Briefcase,
   Mail,
@@ -18,12 +20,16 @@ interface CareerApplication {
   name: string;
   email: string;
   linkedin: string;
+  resume?: string;
   pageTitle: string;
   pageUrl: string;
   appliedAt: string;
 }
 
-export default function CareerPage() {
+function CareerDashboardContent() {
+  const searchParams = useSearchParams();
+  const projectFilter = searchParams.get('project') || 'nabhira';
+
   const [applications, setApplications] = useState<CareerApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,7 +38,8 @@ export default function CareerPage() {
   const fetchApplications = async () => {
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch("http://localhost:8000/api/career/all", {
+      const url = `${API_BASE_URL}/api/career/all?project=${projectFilter}`;
+      const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -50,7 +57,7 @@ export default function CareerPage() {
 
   useEffect(() => {
     fetchApplications();
-  }, []);
+  }, [projectFilter]);
 
   const filteredApps = applications.filter(app =>
     app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -62,7 +69,9 @@ export default function CareerPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#11253e]">Career Applications</h1>
+          <h1 className="text-2xl font-bold text-[#11253e]">
+            {projectFilter.charAt(0).toUpperCase() + projectFilter.slice(1)} - Career Applications
+          </h1>
           <p className="text-gray-500 text-sm mt-1">Manage and review candidates who applied through the website.</p>
         </div>
 
@@ -108,7 +117,7 @@ export default function CareerPage() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm text-[#11253e] font-medium max-w-[200px] truncate" title={app.pageTitle}>
-                          {app.pageTitle.split(' — ')[0]}
+                          {app.pageTitle.split(' — ')[0].split(' | ')[0]}
                         </span>
                         <a
                           href={app.pageUrl}
@@ -199,6 +208,20 @@ export default function CareerPage() {
                 </a>
               </div>
 
+              {selectedApp.resume && (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Resume / CV</p>
+                  <a
+                    href={`${API_BASE_URL}${selectedApp.resume}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#f99d1c] font-medium inline-flex items-center gap-2 hover:underline bg-[#f99d1c]/5 border border-[#f99d1c]/20 px-4 py-2 rounded-xl text-xs"
+                  >
+                    <FileText size={14} /> Download / View Resume <ExternalLink size={12} />
+                  </a>
+                </div>
+              )}
+
               <div className="bg-[#f8f9fa] rounded-2xl p-6 border border-gray-100 space-y-4">
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Job Role Context</p>
@@ -219,5 +242,13 @@ export default function CareerPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CareerPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Career Applications...</div>}>
+      <CareerDashboardContent />
+    </Suspense>
   );
 }

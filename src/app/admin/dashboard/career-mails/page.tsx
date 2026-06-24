@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { API_BASE_URL } from "@/config/api";
 import {
   Mail,
   User,
@@ -22,13 +24,17 @@ interface CareerMail {
   email: string;
   type: 'application' | 'brochure';
   linkedin?: string;
+  resume?: string;
   pageTitle: string;
   pageUrl: string;
   appliedAt: string;
   createdAt: string;
 }
 
-export default function CareerMailsPage() {
+function CareerMailsDashboardContent() {
+  const searchParams = useSearchParams();
+  const projectFilter = searchParams.get('project') || 'nabhira';
+
   const [inquiries, setInquiries] = useState<CareerMail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,7 +45,8 @@ export default function CareerMailsPage() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch("http://localhost:8000/api/career/all", {
+      const url = `${API_BASE_URL}/api/career/all?project=${projectFilter}`;
+      const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -57,7 +64,7 @@ export default function CareerMailsPage() {
 
   useEffect(() => {
     fetchInquiries();
-  }, []);
+  }, [projectFilter]);
 
   const filteredInquiries = inquiries.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,7 +77,9 @@ export default function CareerMailsPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#11253e]">Career Mails</h1>
+          <h1 className="text-2xl font-bold text-[#11253e]">
+            {projectFilter.charAt(0).toUpperCase() + projectFilter.slice(1)} - Career Mails
+          </h1>
           <p className="text-gray-500 text-sm mt-1">
             Tracking {filteredInquiries.length} interactions from the careers page.
           </p>
@@ -220,6 +229,19 @@ export default function CareerMailsPage() {
                     </a>
                   </div>
                 )}
+                {selectedMail.type === 'application' && selectedMail.resume && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Resume / CV</p>
+                    <a
+                      href={`${API_BASE_URL}${selectedMail.resume}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#f99d1c] font-medium inline-flex items-center gap-2 hover:underline bg-[#f99d1c]/5 border border-[#f99d1c]/20 px-4 py-2 rounded-xl text-xs"
+                    >
+                      <FileText size={14} /> Download / View Resume <ExternalLink size={12} />
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div className="bg-[#f8f9fa] rounded-2xl p-6 border border-gray-100 space-y-4">
@@ -236,14 +258,38 @@ export default function CareerMailsPage() {
                 <button className="flex-1 bg-[#11253e] text-white py-3.5 rounded-2xl font-bold text-[11px] uppercase tracking-widest">
                   Send Response
                 </button>
-                <button className="px-6 border border-gray-100 rounded-2xl text-gray-400 hover:text-[#f99d1c] hover:border-[#f99d1c] transition-all">
-                  <Download size={18} />
-                </button>
+                {selectedMail.type === 'application' && selectedMail.resume ? (
+                  <a
+                    href={`${API_BASE_URL}${selectedMail.resume}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-6 border border-gray-100 rounded-2xl text-gray-400 hover:text-[#f99d1c] hover:border-[#f99d1c] transition-all flex items-center justify-center"
+                    title="Download Resume"
+                  >
+                    <Download size={18} />
+                  </a>
+                ) : (
+                  <button
+                    disabled
+                    className="px-6 border border-gray-100 rounded-2xl text-gray-200 cursor-not-allowed flex items-center justify-center"
+                    title="No Resume Available"
+                  >
+                    <Download size={18} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+export default function CareerMailsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Career Mails...</div>}>
+      <CareerMailsDashboardContent />
+    </Suspense>
   );
 }
