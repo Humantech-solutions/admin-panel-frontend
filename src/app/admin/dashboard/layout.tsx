@@ -32,7 +32,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         />
       </Suspense>
       <div className="flex flex-col flex-1 overflow-hidden">
-        <AdminNavbar onMobileMenuOpen={() => setMobileSidebarOpen(true)} />
+        <Suspense fallback={<div className="h-16 bg-white border-b border-gray-100" />}>
+          <AdminNavbar onMobileMenuOpen={() => setMobileSidebarOpen(true)} />
+        </Suspense>
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 text-black">
           {children}
         </main>
