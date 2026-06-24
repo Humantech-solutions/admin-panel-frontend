@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion as Motion, AnimatePresence } from "motion/react";
 import { MessageCircle, X, Send, Loader2, CheckCircle2, Bot } from "lucide-react";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/config/api";
 
 type Step = "greeting" | "form" | "done";
 
@@ -24,7 +25,7 @@ export function ChatWidget() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:8000/api/chat/query", {
+      const response = await fetch(`${API_BASE_URL}/api/chat/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

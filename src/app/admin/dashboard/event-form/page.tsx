@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/config/api";
 import { 
   User, 
   Mail, 
@@ -38,7 +39,7 @@ export default function EventFormPage() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch("http://localhost:8000/api/event-registration/all", {
+      const response = await fetch(`${API_BASE_URL}/api/event-registration/all`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }

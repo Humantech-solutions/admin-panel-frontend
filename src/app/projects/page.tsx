@@ -4,15 +4,27 @@ import { useState, useRef, useEffect } from "react";
 import { LayoutDashboard, Globe, Beaker, LogOut, ChevronRight, History, ChevronDown, User, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
 
 export default function ProjectsPage() {
   const [activeTab, setActiveTab] = useState("nabhira");
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const router = useRouter();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const getInitials = (name?: string) => {
+    if (!name) return "AD";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  };
+
   useEffect(() => {
+    setMounted(true);
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowProfileDropdown(false);
@@ -24,6 +36,14 @@ export default function ProjectsPage() {
 
   const tabs = [
     {
+      id: "hutech",
+      name: "Hutech Website",
+      icon: <Globe className="w-5 h-5" />,
+      description: "Corporate digital presence and content",
+      color: "from-orange-500 to-red-600",
+      siteUrl: "https://hutech.figma.site/", // Placeholder
+    },
+    {
       id: "nabhira",
       name: "Nabhira Technologies",
       icon: <LayoutDashboard className="w-5 h-5" />,
@@ -31,22 +51,15 @@ export default function ProjectsPage() {
       color: "from-blue-600 to-indigo-700",
       siteUrl: "https://nabhira.com/",
     },
-    {
-      id: "hutech",
-      name: "Hutech Website",
-      icon: <Globe className="w-5 h-5" />,
-      description: "Corporate digital presence and content",
-      color: "from-orange-500 to-red-600",
-      siteUrl: "https://hutech.com/", // Placeholder
-    },
-    {
-      id: "hulabs",
-      name: "Hulabs Website",
-      icon: <Beaker className="w-5 h-5" />,
-      description: "Research and experimental laboratory portal",
-      color: "from-emerald-500 to-teal-600",
-      siteUrl: "https://hulabs.com/", // Placeholder
-    },
+
+    // {
+    //   id: "hulabs",
+    //   name: "Hulabs Website",
+    //   icon: <Beaker className="w-5 h-5" />,
+    //   description: "Research and experimental laboratory portal",
+    //   color: "from-emerald-500 to-teal-600",
+    //   siteUrl: "https://hulabs.com/", // Placeholder
+    // },
   ];
 
   const handleViewSite = () => {
@@ -71,8 +84,8 @@ export default function ProjectsPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeTab === tab.id
-                  ? "bg-white/10 text-white shadow-lg ring-1 ring-white/20"
-                  : "text-white/60 hover:bg-white/5 hover:text-white"
+                ? "bg-white/10 text-white shadow-lg ring-1 ring-white/20"
+                : "text-white/60 hover:bg-white/5 hover:text-white"
                 }`}
             >
               <span className={`p-2.5 rounded-xl transition-colors ${activeTab === tab.id ? "bg-[#f99d1c] text-white" : "bg-white/5 text-white/40 group-hover:text-white"
@@ -112,12 +125,12 @@ export default function ProjectsPage() {
               className="flex items-center gap-4 hover:bg-gray-50 p-2 rounded-2xl transition-all duration-200"
             >
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-[#11253e]">Admin User</p>
+                <p className="text-sm font-bold text-[#11253e]">{mounted && user?.name ? user.name : "Admin User"}</p>
                 <p className="text-xs text-gray-400 font-medium">System Administrator</p>
               </div>
               <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#11253e] to-[#030213] flex items-center justify-center text-white font-bold shadow-lg shadow-[#11253e]/20">
-                  AD
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#11253e] to-[#030213] flex items-center justify-center text-white font-bold shadow-lg shadow-[#11253e]/20 text-[15px]">
+                  {getInitials(mounted && user?.name ? user.name : "Admin User")}
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100">
                   <ChevronDown className={`w-3 h-3 text-[#11253e] transition-transform duration-300 ${showProfileDropdown ? 'rotate-180' : ''}`} />
@@ -128,15 +141,19 @@ export default function ProjectsPage() {
             {showProfileDropdown && (
               <div className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl border border-gray-100 py-4 z-50 animate-in fade-in zoom-in duration-200 origin-top-right">
                 <div className="px-6 py-4 border-b border-gray-50 mb-2">
-                  <p className="text-sm font-bold text-[#11253e]">Admin User</p>
-                  <p className="text-xs text-gray-400">admin@nabhira.com</p>
+                  <p className="text-sm font-bold text-[#11253e]">{mounted && user?.name ? user.name : "Admin User"}</p>
+                  <p className="text-xs text-gray-400">{mounted && user?.email ? user.email : "admin@nabhira.com"}</p>
                 </div>
 
                 <div className="px-2 space-y-1">
-                  <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+                  <Link
+                    href={`/admin/dashboard/profile?project=${activeTab}`}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+                    onClick={() => setShowProfileDropdown(false)}
+                  >
                     <User className="w-4 h-4" />
                     My Profile
-                  </button>
+                  </Link>
                   <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
                     <Settings className="w-4 h-4" />
                     Account Settings
@@ -173,7 +190,7 @@ export default function ProjectsPage() {
                     View Project Site
                   </button>
                   <button
-                    onClick={() => window.open(`/admin/dashboard/${activeTab}`, "_blank")}
+                    onClick={() => window.open(`/admin/dashboard?project=${activeTab}`, "_blank")}
                     className="px-8 py-3.5 bg-black/20 text-white rounded-2xl font-bold hover:bg-black/30 transition-all border border-white/20 flex items-center gap-2"
                   >
                     <History className="w-4 h-4" />

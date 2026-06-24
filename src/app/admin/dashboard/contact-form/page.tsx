@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { API_BASE_URL } from "@/config/api";
 import {
   MessageSquare,
   Mail,
@@ -14,13 +15,15 @@ import {
   X,
   Clock,
   Tag,
-  CheckCircle2
+  CheckCircle2,
+  Phone
 } from "lucide-react";
 
 interface ContactInquiry {
   _id: string;
   name: string;
   email: string;
+  phone?: string;
   subject: string;
   message: string;
   pageTitle: string;
@@ -33,6 +36,7 @@ interface ContactInquiry {
 function ContactDashboardContent() {
   const searchParams = useSearchParams();
   const categoryFilter = searchParams.get('category');
+  const projectFilter = searchParams.get('project') || 'nabhira';
 
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,9 +47,10 @@ function ContactDashboardContent() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const url = categoryFilter
-        ? `http://localhost:8000/api/contact/all?category=${categoryFilter}`
-        : `http://localhost:8000/api/contact/all`;
+      const params = new URLSearchParams();
+      if (projectFilter) params.append('project', projectFilter);
+      if (categoryFilter) params.append('category', categoryFilter);
+      const url = `${API_BASE_URL}/api/contact/all?${params.toString()}`;
 
       const response = await fetch(url, {
         headers: {
@@ -65,7 +70,7 @@ function ContactDashboardContent() {
 
   useEffect(() => {
     fetchInquiries();
-  }, [categoryFilter]);
+  }, [categoryFilter, projectFilter]);
 
   const filteredInquiries = inquiries.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,7 +81,7 @@ function ContactDashboardContent() {
   const updateStatus = async (id: string, newStatus: string) => {
     try {
       const token = sessionStorage.getItem("adminToken");
-      await fetch(`http://localhost:8000/api/contact/${id}/status`, {
+      await fetch(`${API_BASE_URL}/api/contact/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +103,7 @@ function ContactDashboardContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#11253e]">
-            {categoryFilter ? `${categoryFilter} Inquiries` : "All Contact Inquiries"}
+            {projectFilter.charAt(0).toUpperCase() + projectFilter.slice(1)} - {categoryFilter ? `${categoryFilter} Inquiries` : "All Contact Inquiries"}
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Showing {filteredInquiries.length} results {categoryFilter && `for ${categoryFilter}`}
@@ -243,6 +248,18 @@ function ContactDashboardContent() {
                       <p className="text-[#11253e] font-medium text-sm">{selectedInquiry.email}</p>
                     </div>
                   </div>
+
+                  {selectedInquiry.phone && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                        <Phone size={14} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Phone Number</p>
+                        <p className="text-[#11253e] font-medium text-sm">{selectedInquiry.phone}</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
