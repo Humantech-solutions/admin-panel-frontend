@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   reactStrictMode: true,
+  trailingSlash: true,
   experimental: {
     cpus: 1,
     workerThreads: false,
