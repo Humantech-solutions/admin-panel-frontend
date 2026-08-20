@@ -8,10 +8,7 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
   trailingSlash: true,
-  experimental: {
-    cpus: 1,
-    workerThreads: false,
-  },
+
   eslint: {
     ignoreDuringBuilds: true,
   },

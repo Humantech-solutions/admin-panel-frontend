@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AdminSidebar } from "../components/AdminSidebar";
 import { AdminNavbar } from "../components/AdminNavbar";
 import { useAuth } from "@/context/AuthContext";
+import { CompaniesProvider } from "@/lib/useCompanies";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -22,23 +23,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [isAuthenticated, router]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Suspense fallback={<div className="w-60 h-screen bg-[#11253e]" />}>
-        <AdminSidebar
-          isOpen={sidebarOpen}
-          onToggle={() => setSidebarOpen((prev) => !prev)}
-          isMobileOpen={mobileSidebarOpen}
-          onMobileClose={() => setMobileSidebarOpen(false)}
-        />
-      </Suspense>
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Suspense fallback={<div className="h-16 bg-white border-b border-gray-100" />}>
-          <AdminNavbar onMobileMenuOpen={() => setMobileSidebarOpen(true)} />
+    <CompaniesProvider>
+      <div className="flex h-screen overflow-hidden bg-gray-50">
+        <Suspense fallback={<div className="w-60 h-screen bg-[#11253e]" />}>
+          <AdminSidebar
+            isOpen={sidebarOpen}
+            onToggle={() => setSidebarOpen((prev) => !prev)}
+            isMobileOpen={mobileSidebarOpen}
+            onMobileClose={() => setMobileSidebarOpen(false)}
+          />
         </Suspense>
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 text-black">
-          {children}
-        </main>
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Suspense fallback={<div className="h-16 bg-white border-b border-gray-100" />}>
+            <AdminNavbar onMobileMenuOpen={() => setMobileSidebarOpen(true)} />
+          </Suspense>
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 text-black">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </CompaniesProvider>
   );
 }

@@ -6,6 +6,7 @@ import Image from "next/image";
 import adminBg from "@/../public/assets/admin_login_bg.png";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import { API_BASE_URL } from "@/config/api";
 
 export default function AdminLoginPage() {
   const { login, verifyMfa } = useAuth();
@@ -13,12 +14,46 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [mfaStep, setMfaStep] = useState<"login" | "otp">("login");
+  const [mfaStep, setMfaStep] = useState<"login" | "otp" | "change_password" | "setup_company">("login");
   const [mfaToken, setMfaToken] = useState("");
   const [mfaMessage, setMfaMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [setupCompanyName, setSetupCompanyName] = useState("");
+  const [setupAdminEmail, setSetupAdminEmail] = useState("");
+  const [setupFromEmailName, setSetupFromEmailName] = useState("");
+  const [setupSiteUrl, setSetupSiteUrl] = useState("");
+  const [pendingUser, setPendingUser] = useState<any>(null);
+
+  const redirectUser = (u: any) => {
+    if (u?.role === "superadmin") {
+      router.push("/organization/companies");
+    } else {
+      const companySlug = u?.companySlug || u?.companyId;
+      if (companySlug) {
+        router.push(`/admin/dashboard?company=${companySlug}`);
+      } else {
+        router.push("/admin/dashboard");
+      }
+    }
+  };
+
+  const checkNextStep = (u: any) => {
+    if (u?.mustChangePassword) {
+      setMfaStep("change_password");
+      setPendingUser(u);
+    } else if (u?.needsCompanySetup) {
+      setMfaStep("setup_company");
+      setPendingUser(u);
+      if (u?.email) setSetupAdminEmail(u.email);
+      if (u?.name) setSetupFromEmailName(u.name);
+    } else {
+      redirectUser(u);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +68,7 @@ export default function AdminLoginPage() {
         setMfaToken(result.mfaToken || "");
         setMfaMessage(result.message || "");
       } else {
-        router.push("/projects");
+        checkNextStep(result.user);
       }
     } else {
       setError(result.error || "Login failed.");
@@ -48,9 +83,86 @@ export default function AdminLoginPage() {
     setLoading(false);
 
     if (result.success) {
-      router.push("/projects");
+      checkNextStep(result.user);
     } else {
       setError(result.error || "Verification failed.");
+    }
+  };
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (newPassword.length < 6) {
+      setError("New password must be at least 6 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = sessionStorage.getItem("adminToken");
+      const res = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Update local stored user
+        const updatedUser = { ...pendingUser, mustChangePassword: false };
+        sessionStorage.setItem("adminUser", JSON.stringify(updatedUser));
+        checkNextStep(updatedUser);
+      } else {
+        setError(data.message || "Failed to update password.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetupCompanySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!setupCompanyName.trim()) {
+      setError("Company name is required.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = sessionStorage.getItem("adminToken");
+      const res = await fetch(`${API_BASE_URL}/api/auth/setup-company`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          companyName: setupCompanyName,
+          adminEmail: setupAdminEmail,
+          fromEmailName: setupFromEmailName,
+          siteUrl: setupSiteUrl
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        sessionStorage.setItem("adminUser", JSON.stringify(data.user));
+        redirectUser(data.user);
+      } else {
+        setError(data.message || "Failed to setup company.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -195,7 +307,7 @@ export default function AdminLoginPage() {
                 </p>
               </div>
             </>
-          ) : (
+          ) : mfaStep === "otp" ? (
             <>
               <div className="mb-10 text-center lg:text-left">
                 <h1 className="text-3xl font-bold text-[#11253e] mb-2 tracking-tight">Security Verification</h1>
@@ -267,6 +379,150 @@ export default function AdminLoginPage() {
                   className="w-full text-gray-500 hover:text-[#11253e] font-bold text-sm transition-colors py-2"
                 >
                   Back to login
+                </button>
+              </form>
+            </>
+          ) : mfaStep === "change_password" ? (
+            <>
+              <div className="mb-10 text-center sm:text-left">
+                <span className="inline-block px-3 py-1 bg-amber-50 text-[#f99d1c] font-extrabold text-[10px] tracking-[0.2em] uppercase rounded-full border border-amber-200/60 mb-3">
+                  First-Time Account Setup
+                </span>
+                <h1 className="text-3xl font-extrabold text-[#11253e] tracking-tight">
+                  Set Your Password
+                </h1>
+                <p className="text-gray-500 font-medium mt-2 text-sm">
+                  Please set your own permanent password to secure your account.
+                </p>
+              </div>
+
+              <form onSubmit={handleChangePasswordSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    required
+                    minLength={6}
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    required
+                    minLength={6}
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
+                  />
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-2xl px-5 py-4">
+                    <span className="text-red-600 text-[14px] font-bold">{error}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || !newPassword || !confirmPassword}
+                  className="w-full bg-[#f99d1c] hover:bg-[#e88f10] text-white font-bold py-4 rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 shadow-xl shadow-[#f99d1c]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Updating Password…" : "Save Password & Continue"}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="mb-10 text-center sm:text-left">
+                <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 font-extrabold text-[10px] tracking-[0.2em] uppercase rounded-full border border-blue-200/60 mb-3">
+                  Organization Setup
+                </span>
+                <h1 className="text-3xl font-extrabold text-[#11253e] tracking-tight">
+                  Register Your Company
+                </h1>
+                <p className="text-gray-500 font-medium mt-2 text-sm">
+                  Welcome! Enter your company details to set up your administration workspace.
+                </p>
+              </div>
+
+              <form onSubmit={handleSetupCompanySubmit} className="space-y-5">
+                <div>
+                  <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">
+                    Company / Organization Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={setupCompanyName}
+                    onChange={(e) => setSetupCompanyName(e.target.value)}
+                    placeholder="Acme Corporation"
+                    required
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">
+                    Notification Email * <span className="text-gray-400 font-normal text-xs">(Alerts & Logs Receiver)</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={setupAdminEmail}
+                    onChange={(e) => setSetupAdminEmail(e.target.value)}
+                    placeholder="admin@acme.com"
+                    required
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">
+                    From Sender Name <span className="text-gray-400 font-normal text-xs">(Outbound Emails)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={setupFromEmailName}
+                    onChange={(e) => setSetupFromEmailName(e.target.value)}
+                    placeholder="Acme Notifications"
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">
+                    Primary Website URL <span className="text-gray-400 font-normal text-xs">(Optional)</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={setupSiteUrl}
+                    onChange={(e) => setSetupSiteUrl(e.target.value)}
+                    placeholder="https://acme.com"
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
+                  />
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-2xl px-5 py-4">
+                    <span className="text-red-600 text-[14px] font-bold">{error}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || !setupCompanyName.trim()}
+                  className="w-full bg-[#f99d1c] hover:bg-[#e88f10] text-white font-bold py-4 rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 shadow-xl shadow-[#f99d1c]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Creating Organization…" : "Create Organization & Launch Dashboard"}
                 </button>
               </form>
             </>

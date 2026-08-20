@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "@/config/api";
 
 interface User {
+  _id?: string;
   name?: string;
   email: string;
+  role?: string;
+  companyId?: string | null;
 }
 
 interface AuthResult {
@@ -16,6 +19,7 @@ interface AuthResult {
   mfaSetupRequired?: boolean;
   mfaToken?: string;
   message?: string;
+  user?: User;
 }
 
 interface AuthContextType {
@@ -23,37 +27,31 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<AuthResult>;
   verifyMfa: (mfaToken: string, otp: string) => Promise<AuthResult>;
-  register: (name: string, email: string, password: string) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string, companyName?: string, siteUrl?: string) => Promise<AuthResult>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("adminAuth") === "true";
-    }
-    return false;
-  });
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window !== "undefined") {
-      const storedUser = sessionStorage.getItem("adminUser");
-      if (storedUser) {
-        try {
-          return JSON.parse(storedUser);
-        } catch (e) {
-          return null;
-        }
-      }
-    }
-    return null;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const storedAuth = sessionStorage.getItem("adminAuth");
     const token = sessionStorage.getItem("adminToken");
+    const storedUser = sessionStorage.getItem("adminUser");
+
+    if (storedAuth === "true" && storedUser) {
+      try {
+        setIsAuthenticated(true);
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    }
     if (storedAuth !== "true" || !token) {
       setIsAuthenticated(false);
       setUser(null);
@@ -104,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem("adminAuth", "true");
         sessionStorage.setItem("adminUser", JSON.stringify(data.user));
         sessionStorage.setItem("adminToken", data.token);
-        return { success: true };
+        return { success: true, user: data.user };
       } else {
         const errorMsg = data.details ? `${data.message}: ${data.details}` : (data.message || "Invalid credentials");
         return { success: false, error: errorMsg };
@@ -133,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem("adminAuth", "true");
         sessionStorage.setItem("adminUser", JSON.stringify(data.user));
         sessionStorage.setItem("adminToken", data.token);
-        return { success: true };
+        return { success: true, user: data.user };
       } else {
         return { success: false, error: data.message || "Invalid MFA code" };
       }
@@ -143,14 +141,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<AuthResult> => {
+  const register = async (name: string, email: string, password: string, companyName?: string, siteUrl?: string): Promise<AuthResult> => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, companyName, siteUrl }),
       });
 
       const data = await response.json();
