@@ -13,7 +13,7 @@ interface AdminNavbarProps {
 export function AdminNavbar({ onMobileMenuOpen }: AdminNavbarProps) {
   const { logout, user } = useAuth();
   const searchParams = useSearchParams();
-  const project = searchParams.get("project") || "nabhira";
+  const company = searchParams.get("company") ||"";
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -51,7 +51,9 @@ export function AdminNavbar({ onMobileMenuOpen }: AdminNavbarProps) {
         >
           <div className="text-right">
             <p className="text-[#11253e] font-semibold text-sm leading-tight">Welcome, {mounted && user?.name ? user.name : "Admin"}</p>
-            <p className="text-gray-400 text-[11px] leading-tight hidden sm:block text-right">Admin Portal</p>
+            <p className="text-gray-400 text-[11px] leading-tight hidden sm:block text-right">
+              {mounted && user?.role === "superadmin" ? "Super Admin Portal" : "Admin Portal"}
+            </p>
           </div>
           <div className="relative">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#11253e] to-[#1a3d66] flex items-center justify-center shadow-sm">
@@ -72,7 +74,7 @@ export function AdminNavbar({ onMobileMenuOpen }: AdminNavbarProps) {
             
             <div className="px-2 space-y-0.5">
               <Link 
-                href={`/admin/dashboard/profile?project=${project}`}
+                href={user?.role === "superadmin" ? "/admin/dashboard/profile" : `/admin/dashboard/profile?company=${company}`}
                 className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                 onClick={() => setShowProfileDropdown(false)}
               >

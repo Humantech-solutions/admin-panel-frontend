@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/config/api";
-import { User, Mail, Shield, Calendar, ArrowLeft, Key } from "lucide-react";
+import { User, Mail, Shield, Calendar, ArrowLeft, Key, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 interface UserProfile {
@@ -17,7 +17,16 @@ interface UserProfile {
 function ProfileContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const project = searchParams.get("project") || "nabhira";
+  const company = searchParams.get("company") || (user as any)?.companySlug || "";
+  const website = searchParams.get("website");
+
+  const backUrl = user?.role === "superadmin"
+    ? "/organization/companies"
+    : website
+      ? `/admin/dashboard?${company ? `company=${company}&` : ""}website=${website}`
+      : company
+        ? `/admin/dashboard?company=${company}`
+        : "/admin/dashboard";
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,12 +50,11 @@ function ProfileContent() {
         if (data.success && data.user) {
           setProfile(data.user);
         } else {
-          setError(data.message || "Failed to load profile details.");
+          setError(data.message || "Failed to load profile.");
         }
       })
-      .catch(err => {
-        console.error("Profile fetch error:", err);
-        setError("Unable to connect to the server.");
+      .catch(() => {
+        setError("Unable to connect to server.");
       })
       .finally(() => {
         setLoading(false);
@@ -79,9 +87,9 @@ function ProfileContent() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f99d1c]" />
-        <p className="text-gray-500 font-semibold mt-4 text-sm">Fetching profile details...</p>
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <Loader2 className="w-8 h-8 text-[#f99d1c] animate-spin" />
+        <p className="text-gray-400 text-sm font-medium">Loading profile details…</p>
       </div>
     );
   }
@@ -95,7 +103,7 @@ function ProfileContent() {
         <h2 className="text-xl font-bold text-red-800 mb-2">Error Accessing Profile</h2>
         <p className="text-red-600 font-semibold mb-6">{error}</p>
         <Link
-          href={`/admin/dashboard?project=${project}`}
+          href={backUrl}
           className="inline-flex items-center gap-2 px-6 py-3 bg-[#11253e] hover:bg-[#1a3d66] text-white font-bold rounded-2xl transition-colors shadow-lg"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -117,7 +125,7 @@ function ProfileContent() {
       {/* Back Link */}
       <div className="flex items-center">
         <Link
-          href={`/admin/dashboard?project=${project}`}
+          href={backUrl}
           className="flex items-center gap-2 text-gray-500 hover:text-[#11253e] font-bold text-sm transition-colors group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />

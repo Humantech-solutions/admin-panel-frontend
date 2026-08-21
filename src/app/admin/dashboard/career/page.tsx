@@ -28,7 +28,7 @@ interface CareerApplication {
 
 function CareerDashboardContent() {
   const searchParams = useSearchParams();
-  const projectFilter = searchParams.get('project') || 'nabhira';
+  const websiteFilter = searchParams.get('website') || searchParams.get('company');
 
   const [applications, setApplications] = useState<CareerApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +38,7 @@ function CareerDashboardContent() {
   const fetchApplications = async () => {
     try {
       const token = sessionStorage.getItem("adminToken");
-      const url = `${API_BASE_URL}/api/career/all?project=${projectFilter}`;
+      const url = `${API_BASE_URL}/api/career/all?project=${websiteFilter}`;
       const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`
@@ -57,7 +57,7 @@ function CareerDashboardContent() {
 
   useEffect(() => {
     fetchApplications();
-  }, [projectFilter]);
+  }, [websiteFilter]);
 
   const filteredApps = applications.filter(app =>
     app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,7 +70,7 @@ function CareerDashboardContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#11253e]">
-            {projectFilter.charAt(0).toUpperCase() + projectFilter.slice(1)} - Career Applications
+            {websiteFilter ? websiteFilter.charAt(0).toUpperCase() + websiteFilter.slice(1) : "All"} - Career Applications
           </h1>
           <p className="text-gray-500 text-sm mt-1">Manage and review candidates who applied through the website.</p>
         </div>
