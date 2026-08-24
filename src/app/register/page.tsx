@@ -58,12 +58,7 @@ export default function RegisterPage() {
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#11253e]/5 rounded-tl-full pointer-events-none" />
 
         <div className="w-full max-w-md relative z-10">
-          {/* Logo Section - Empty but preserved space */}
-          <div className="flex justify-center lg:justify-start mb-16 h-12">
-            <div className="text-gray-200 font-bold text-2xl tracking-widest border-2 border-dashed border-gray-100 px-8 flex items-center justify-center rounded-xl bg-gray-50/50">
-              LOGO
-            </div>
-          </div>
+
 
           {!success ? (
             <>
@@ -219,10 +214,6 @@ export default function RegisterPage() {
             <p className="text-gray-400 text-[11px] tracking-[0.2em] uppercase font-bold">
               © {new Date().getFullYear()} Hutech Group
             </p>
-            <div className="flex gap-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-sm shadow-green-500/50" />
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Secure Access</span>
-            </div>
           </div>
         </div>
       </div>

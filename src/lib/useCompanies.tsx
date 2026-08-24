@@ -27,6 +27,9 @@ export interface Company {
   description?: string;
   siteUrl?: string;
   adminEmail: string;
+  contactNotificationEmail?: string;
+  careersNotificationEmail?: string;
+  salesNotificationEmail?: string;
   fromEmailName?: string;
   isActive: boolean;
   createdAt: string;
