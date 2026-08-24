@@ -36,6 +36,24 @@ function authHeaders() {
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 }
 
+export interface DepartmentSmtpForm {
+  enabled: boolean;
+  host: string;
+  port: string;
+  user: string;
+  pass: string;
+  secure: boolean;
+}
+
+const emptySmtpForm: DepartmentSmtpForm = {
+  enabled: false,
+  host: "",
+  port: "587",
+  user: "",
+  pass: "",
+  secure: false,
+};
+
 export interface CompanyForm {
   name: string;
   slug: string;
@@ -44,6 +62,10 @@ export interface CompanyForm {
   fromEmailName: string;
   siteUrl: string;
   siteName: string;
+  adminSmtp: DepartmentSmtpForm;
+  careersSmtp: DepartmentSmtpForm;
+  salesSmtp: DepartmentSmtpForm;
+  contactSmtp: DepartmentSmtpForm;
 }
 
 const emptyForm: CompanyForm = {
@@ -54,7 +76,25 @@ const emptyForm: CompanyForm = {
   fromEmailName: "",
   siteUrl: "",
   siteName: "",
+  adminSmtp: emptySmtpForm,
+  careersSmtp: emptySmtpForm,
+  salesSmtp: emptySmtpForm,
+  contactSmtp: emptySmtpForm,
 };
+
+function mapSmtp(smtp?: any): DepartmentSmtpForm {
+  if (smtp && (smtp.user || smtp.host)) {
+    return {
+      enabled: true,
+      host: smtp.host || "",
+      port: smtp.port ? String(smtp.port) : "587",
+      user: smtp.user || "",
+      pass: smtp.pass || "",
+      secure: Boolean(smtp.secure),
+    };
+  }
+  return { ...emptySmtpForm };
+}
 
 export default function OrganizationCompaniesPage() {
   const { user } = useAuth();
@@ -122,6 +162,10 @@ export default function OrganizationCompaniesPage() {
       fromEmailName: company.fromEmailName ?? "",
       siteUrl: company.siteUrl ?? "",
       siteName: company.name,
+      adminSmtp: mapSmtp(company.adminSmtp),
+      careersSmtp: mapSmtp(company.careersSmtp),
+      salesSmtp: mapSmtp(company.salesSmtp),
+      contactSmtp: mapSmtp(company.contactSmtp),
     });
     setSlugEdited(true);
     setFormError("");
@@ -149,6 +193,31 @@ export default function OrganizationCompaniesPage() {
     if (!form.name.trim()) { setFormError("Company name is required."); return; }
     if (!form.adminEmail.trim()) { setFormError("Notification email is required."); return; }
 
+    const buildSmtpPayload = (smtp: DepartmentSmtpForm) => {
+      if (!smtp.enabled) return null;
+      return {
+        host: smtp.host.trim() || undefined,
+        port: smtp.port ? Number(smtp.port) : 587,
+        user: smtp.user.trim() || undefined,
+        pass: smtp.pass || undefined,
+        secure: smtp.secure,
+      };
+    };
+
+    const payload = {
+      name: form.name,
+      slug: form.slug,
+      description: form.description,
+      adminEmail: form.adminEmail,
+      fromEmailName: form.fromEmailName,
+      siteUrl: form.siteUrl,
+      siteName: form.siteName,
+      adminSmtp: buildSmtpPayload(form.adminSmtp),
+      careersSmtp: buildSmtpPayload(form.careersSmtp),
+      salesSmtp: buildSmtpPayload(form.salesSmtp),
+      contactSmtp: buildSmtpPayload(form.contactSmtp),
+    };
+
     setSaving(true);
     try {
       let res: Response;
@@ -156,13 +225,13 @@ export default function OrganizationCompaniesPage() {
         res = await fetch(`${API_BASE_URL}/api/companies/${editTarget._id}`, {
           method: "PUT",
           headers: authHeaders(),
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         });
       } else {
         res = await fetch(`${API_BASE_URL}/api/companies/add`, {
           method: "POST",
           headers: authHeaders(),
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         });
       }
       const data = await res.json();
@@ -502,7 +571,7 @@ export default function OrganizationCompaniesPage() {
       {drawerOpen && (
         <div className="fixed inset-0 z-[100] flex">
           <div className="absolute inset-0 bg-[#11253e]/50 backdrop-blur-sm" onClick={closeDrawer} />
-          <aside className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+          <aside className="absolute right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-[#f99d1c] rounded-xl flex items-center justify-center text-white">
@@ -600,6 +669,126 @@ export default function OrganizationCompaniesPage() {
                   )}
                 </>
               )}
+
+              {/* Departmental SMTP Settings */}
+              <div className="pt-4 border-t border-gray-100 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-extrabold text-[#11253e] uppercase tracking-wider flex items-center gap-2">
+                    <Mail size={14} className="text-[#f99d1c]" />
+                    Departmental SMTP Configurations
+                  </h3>
+                  <span className="text-[10px] text-gray-400 font-medium">Optional Custom Mail Servers</span>
+                </div>
+
+                {[
+                  { key: "adminSmtp", label: "Admin System SMTP", desc: "For user registration & welcome emails" },
+                  { key: "careersSmtp", label: "Careers Mail SMTP", desc: "For job application & hiring responses" },
+                  { key: "salesSmtp", label: "Sales & Marketing SMTP", desc: "For sales inquiries & brochure downloads" },
+                  { key: "contactSmtp", label: "Contact Form SMTP", desc: "For website contact us form notifications" },
+                ].map((dept) => {
+                  const deptKey = dept.key as "adminSmtp" | "careersSmtp" | "salesSmtp" | "contactSmtp";
+                  const smtpData = form[deptKey];
+                  return (
+                    <div key={dept.key} className="bg-gray-50/80 border border-gray-200/80 rounded-2xl p-4 transition-all">
+                      <label className="flex items-start gap-3 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={smtpData.enabled}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setForm((prev) => ({
+                              ...prev,
+                              [deptKey]: {
+                                ...prev[deptKey],
+                                enabled: checked,
+                              },
+                            }));
+                          }}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#f99d1c] focus:ring-[#f99d1c] accent-[#f99d1c]"
+                        />
+                        <div className="flex-1">
+                          <span className="text-xs font-bold text-[#11253e] block">{dept.label}</span>
+                          <span className="text-[11px] text-gray-400 block mt-0.5">{dept.desc}</span>
+                        </div>
+                      </label>
+
+                      {smtpData.enabled && (
+                        <div className="mt-4 pt-3 border-t border-gray-200/60 space-y-3.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="col-span-2 space-y-1">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">SMTP Host</label>
+                              <input
+                                type="text"
+                                placeholder="smtp.hostinger.com"
+                                value={smtpData.host}
+                                onChange={(e) => setForm((prev) => ({
+                                  ...prev,
+                                  [deptKey]: { ...prev[deptKey], host: e.target.value }
+                                }))}
+                                className="input text-xs py-2"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Port</label>
+                              <input
+                                type="number"
+                                placeholder="587"
+                                value={smtpData.port}
+                                onChange={(e) => setForm((prev) => ({
+                                  ...prev,
+                                  [deptKey]: { ...prev[deptKey], port: e.target.value }
+                                }))}
+                                className="input text-xs py-2"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Username / Email</label>
+                            <input
+                              type="text"
+                              placeholder="email@domain.com"
+                              value={smtpData.user}
+                              onChange={(e) => setForm((prev) => ({
+                                ...prev,
+                                [deptKey]: { ...prev[deptKey], user: e.target.value }
+                              }))}
+                              className="input text-xs py-2"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Password</label>
+                            <input
+                              type="password"
+                              placeholder="••••••••••••"
+                              value={smtpData.pass}
+                              onChange={(e) => setForm((prev) => ({
+                                ...prev,
+                                [deptKey]: { ...prev[deptKey], pass: e.target.value }
+                              }))}
+                              className="input text-xs py-2"
+                            />
+                          </div>
+
+                          <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={smtpData.secure}
+                              onChange={(e) => setForm((prev) => ({
+                                ...prev,
+                                [deptKey]: { ...prev[deptKey], secure: e.target.checked }
+                              }))}
+                              className="h-3.5 w-3.5 rounded border-gray-300 text-[#f99d1c] focus:ring-[#f99d1c] accent-[#f99d1c]"
+                            />
+                            <span className="text-xs font-semibold text-gray-600">Use Secure SSL/TLS (Port 465)</span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
 
               {formError && (
                 <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100 rounded-xl px-4 py-3">

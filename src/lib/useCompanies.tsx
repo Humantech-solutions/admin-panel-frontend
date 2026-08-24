@@ -12,6 +12,14 @@ export interface Website {
   createdAt: string;
 }
 
+export interface SmtpConfig {
+  host?: string;
+  port?: number | string;
+  user?: string;
+  pass?: string;
+  secure?: boolean;
+}
+
 export interface Company {
   _id: string;
   name: string;
@@ -23,6 +31,10 @@ export interface Company {
   isActive: boolean;
   createdAt: string;
   websites?: Website[];
+  adminSmtp?: SmtpConfig;
+  careersSmtp?: SmtpConfig;
+  salesSmtp?: SmtpConfig;
+  contactSmtp?: SmtpConfig;
 }
 
 interface CompaniesContextValue {
