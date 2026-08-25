@@ -7,11 +7,7 @@ import {
   Plus,
   Pencil,
   Trash2,
-  X,
   Globe,
-  Mail,
-  Tag,
-  FileText,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -22,39 +18,12 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/config/api";
 import { useCompanies, Company } from "@/lib/useCompanies";
-
-function slugify(str: string) {
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-}
+import CompanyOnboardingDrawer from "@/components/CompanyOnboardingDrawer";
 
 function authHeaders() {
   const token = sessionStorage.getItem("adminToken");
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 }
-
-export interface CompanyForm {
-  name: string;
-  slug: string;
-  description: string;
-  adminEmail: string;
-  fromEmailName: string;
-  siteUrl: string;
-  siteName: string;
-}
-
-const emptyForm: CompanyForm = {
-  name: "",
-  slug: "",
-  description: "",
-  adminEmail: "",
-  fromEmailName: "",
-  siteUrl: "",
-  siteName: "",
-};
 
 export default function OrganizationCompaniesPage() {
   const { user } = useAuth();
@@ -75,10 +44,6 @@ export default function OrganizationCompaniesPage() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Company | null>(null);
-  const [form, setForm] = useState<CompanyForm>(emptyForm);
-  const [slugEdited, setSlugEdited] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState("");
 
   const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -96,7 +61,6 @@ export default function OrganizationCompaniesPage() {
     return acc + ((comp as any).storageMB || (comp as any).storageUsedMB || 0);
   }, 0);
 
-  // Dynamic EC2 capacity limit: fetched from backend API payload or NEXT_PUBLIC_EC2_STORAGE_LIMIT_GB
   const totalCapacityGB = (companies as any)?.totalCapacityGB || (companies as any)?.ec2CapacityGB || Number(process.env.NEXT_PUBLIC_EC2_STORAGE_LIMIT_GB) || 0;
 
   const formattedUsed = totalStorageMB >= 1024
@@ -106,74 +70,12 @@ export default function OrganizationCompaniesPage() {
   /* ── Drawer helpers ── */
   const openAdd = () => {
     setEditTarget(null);
-    setForm(emptyForm);
-    setSlugEdited(false);
-    setFormError("");
     setDrawerOpen(true);
   };
 
   const openEdit = (company: Company) => {
     setEditTarget(company);
-    setForm({
-      name: company.name,
-      slug: company.slug,
-      description: company.description ?? "",
-      adminEmail: company.adminEmail,
-      fromEmailName: company.fromEmailName ?? "",
-      siteUrl: company.siteUrl ?? "",
-      siteName: company.name,
-    });
-    setSlugEdited(true);
-    setFormError("");
     setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setEditTarget(null);
-    setFormError("");
-  };
-
-  const handleNameChange = (value: string) => {
-    setForm((prev) => ({
-      ...prev,
-      name: value,
-      slug: slugEdited ? prev.slug : slugify(value),
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError("");
-
-    if (!form.name.trim()) { setFormError("Company name is required."); return; }
-    if (!form.adminEmail.trim()) { setFormError("Notification email is required."); return; }
-
-    setSaving(true);
-    try {
-      let res: Response;
-      if (editTarget) {
-        res = await fetch(`${API_BASE_URL}/api/companies/${editTarget._id}`, {
-          method: "PUT",
-          headers: authHeaders(),
-          body: JSON.stringify(form),
-        });
-      } else {
-        res = await fetch(`${API_BASE_URL}/api/companies/add`, {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify(form),
-        });
-      }
-      const data = await res.json();
-      if (!data.success) { setFormError(data.message ?? "Something went wrong."); return; }
-      await refetch();
-      closeDrawer();
-    } catch {
-      setFormError("Network error. Please try again.");
-    } finally {
-      setSaving(false);
-    }
   };
 
   const toggleActive = async (company: Company) => {
@@ -392,7 +294,6 @@ export default function OrganizationCompaniesPage() {
                                 : "N/A";
                               return (
                                 <div key={site._id || site.slug} className="flex items-center gap-2">
-                                  {/* Zoho-style Date Ribbon Tag */}
                                   <span className="inline-flex items-center bg-emerald-500 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-xs shrink-0 tracking-tight">
                                     {formattedDate}
                                   </span>
@@ -424,7 +325,6 @@ export default function OrganizationCompaniesPage() {
                       })()}
                     </td>
 
-                    {/* Storage Used */}
                     <td className="px-6 py-4">
                       {(() => {
                         const mb = (company as any).storageMB || (company as any).storageUsedMB || 0;
@@ -498,137 +398,13 @@ export default function OrganizationCompaniesPage() {
         </div>
       </div>
 
-      {/* Drawer */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-[100] flex">
-          <div className="absolute inset-0 bg-[#11253e]/50 backdrop-blur-sm" onClick={closeDrawer} />
-          <aside className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#f99d1c] rounded-xl flex items-center justify-center text-white">
-                  <Building2 size={18} />
-                </div>
-                <div>
-                  <h2 className="font-bold text-[#11253e] text-base">
-                    {editTarget ? "Edit Organization" : "Onboard New Organization"}
-                  </h2>
-                  <p className="text-[11px] text-gray-400 font-medium">
-                    {editTarget ? `Editing: ${editTarget.name}` : "Configure organization details"}
-                  </p>
-                </div>
-              </div>
-              <button onClick={closeDrawer} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-[#11253e] transition-all">
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
-              <Field icon={<Building2 size={15} />} label="Organization Name" required>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="Acme Corp"
-                  className="input"
-                  required
-                />
-              </Field>
-
-              <Field icon={<Tag size={15} />} label="Slug (URL key)" hint="Auto-generated from name">
-                <input
-                  type="text"
-                  value={form.slug}
-                  onChange={(e) => { setSlugEdited(true); setForm((p) => ({ ...p, slug: slugify(e.target.value) })); }}
-                  placeholder="acme-corp"
-                  className="input font-mono"
-                />
-              </Field>
-
-              <Field icon={<FileText size={15} />} label="Description">
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                  placeholder="Brief description of this organization…"
-                  rows={3}
-                  className="input resize-none"
-                />
-              </Field>
-
-              <Field icon={<Mail size={15} />} label="Notification Email" required hint="Primary admin email">
-                <input
-                  type="email"
-                  value={form.adminEmail}
-                  onChange={(e) => setForm((p) => ({ ...p, adminEmail: e.target.value }))}
-                  placeholder="admin@acme.com"
-                  className="input"
-                  required
-                />
-              </Field>
-
-              <Field icon={<Mail size={15} />} label="From Name" hint="Sender name in notification emails">
-                <input
-                  type="text"
-                  value={form.fromEmailName}
-                  onChange={(e) => setForm((p) => ({ ...p, fromEmailName: e.target.value }))}
-                  placeholder="Acme Notifications"
-                  className="input"
-                />
-              </Field>
-
-              {!editTarget && (
-                <>
-                  <Field icon={<Globe size={15} />} label="Primary Website URL" hint="Auto-creates linked website domain">
-                    <input
-                      type="url"
-                      value={form.siteUrl}
-                      onChange={(e) => setForm((p) => ({ ...p, siteUrl: e.target.value }))}
-                      placeholder="https://acme.com"
-                      className="input"
-                    />
-                  </Field>
-
-                  {form.siteUrl && (
-                    <Field icon={<Globe size={15} />} label="Primary Website Name" hint="Display name for website">
-                      <input
-                        type="text"
-                        value={form.siteName}
-                        onChange={(e) => setForm((p) => ({ ...p, siteName: e.target.value }))}
-                        placeholder="Acme Main Site"
-                        className="input"
-                      />
-                    </Field>
-                  )}
-                </>
-              )}
-
-              {formError && (
-                <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-                  <AlertTriangle size={16} className="shrink-0" />
-                  {formError}
-                </div>
-              )}
-            </form>
-
-            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeDrawer}
-                className="px-5 py-2.5 text-sm font-semibold text-gray-500 hover:text-[#11253e] bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit as unknown as React.MouseEventHandler}
-                disabled={saving}
-                className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#f99d1c] hover:bg-[#e88f10] rounded-xl shadow-md shadow-[#f99d1c]/30 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {saving && <Loader2 size={15} className="animate-spin" />}
-                {saving ? "Saving…" : editTarget ? "Save Changes" : "Onboard Organization"}
-              </button>
-            </div>
-          </aside>
-        </div>
-      )}
+      {/* Multi-Step Onboarding Drawer */}
+      <CompanyOnboardingDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        editTarget={editTarget}
+        onSuccess={refetch}
+      />
 
       {/* Delete Modal */}
       {deleteTarget && (
@@ -664,54 +440,6 @@ export default function OrganizationCompaniesPage() {
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        .input {
-          width: 100%;
-          padding: 0.625rem 0.875rem;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 0.75rem;
-          font-size: 0.875rem;
-          color: #11253e;
-          background: #f9fafb;
-          outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .input:focus {
-          border-color: #f99d1c;
-          box-shadow: 0 0 0 3px rgba(249, 157, 28, 0.12);
-          background: #fff;
-        }
-        .input::placeholder {
-          color: #9ca3af;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function Field({
-  icon,
-  label,
-  required,
-  hint,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
-        <span className="text-gray-400">{icon}</span>
-        {label}
-        {required && <span className="text-[#f99d1c]">*</span>}
-        {hint && <span className="normal-case font-normal text-gray-400 tracking-normal ml-auto">{hint}</span>}
-      </label>
-      {children}
     </div>
   );
 }
