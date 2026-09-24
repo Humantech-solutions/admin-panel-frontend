@@ -189,7 +189,7 @@ export default function CompaniesPage() {
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Websites</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Onboarded Date</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-24">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

@@ -189,11 +189,10 @@ function EventDashboardContent() {
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Attendee</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Organization / Site</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Event</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Attendee Org</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-24">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -211,20 +210,6 @@ function EventDashboardContent() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 max-w-fit">
-                          <Building2 size={11} />
-                          {reg.companyId?.name || "General Organization"}
-                        </span>
-                        {reg.websiteId?.name && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-100 max-w-fit">
-                            <Globe size={10} />
-                            {reg.websiteId.name}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
                       <span className="text-xs text-[#11253e] font-semibold">{reg.eventTitle}</span>
                     </td>
                     <td className="px-6 py-4">
@@ -238,12 +223,12 @@ function EventDashboardContent() {
                         {new Date(reg.submittedAt).toLocaleDateString()}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-center">
                       <button 
                         onClick={() => setSelectedReg(reg)}
                         className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
                       >
-                        <Eye size={18} />
+                        <Eye size={18} className="text-[#f99d1c]" />
                       </button>
                     </td>
                   </tr>
