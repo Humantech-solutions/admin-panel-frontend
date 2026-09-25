@@ -47,6 +47,7 @@ const getWebsiteNavItems = (company: string, website: string) => [
     ],
   },
   { label: "Sales Mails", href: `/admin/dashboard/sales-mails?company=${company}&website=${website}`, icon: <Mail size={20} /> },
+  { label: "Document Requests", href: `/admin/dashboard/document-requests?company=${company}&website=${website}`, icon: <FileText size={20} /> },
   { label: "Event Form", href: `/admin/dashboard/event-form?company=${company}&website=${website}`, icon: <Calendar size={20} /> },
   { label: "Career Applications", href: `/admin/dashboard/career?company=${company}&website=${website}`, icon: <Briefcase size={20} /> },
   { label: "Career Mails", href: `/admin/dashboard/career-mails?company=${company}&website=${website}`, icon: <FileText size={20} /> },
@@ -82,7 +83,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
   const currentCompanySlug = searchParams.get("company") || (user as any)?.companySlug || companies[0]?.slug || "";
   const currentWebsite = searchParams.get("website");
 
-  const showLogsView = searchParams.get("logs") === "true" || pathname.includes("/contact-form") || pathname.includes("/event-form") || pathname.includes("/career") || pathname.includes("/chat") || pathname.includes("/sales-mails");
+  const showLogsView = searchParams.get("logs") === "true" || pathname.includes("/contact-form") || pathname.includes("/event-form") || pathname.includes("/career") || pathname.includes("/chat") || pathname.includes("/sales-mails") || pathname.includes("/document-requests");
 
   const currentCompany = companies.find((c) => c.slug === currentCompanySlug) ?? companies[0];
 
@@ -181,6 +182,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
                     <Link
                       key={site.slug}
                       href={`/admin/dashboard?company=${currentCompanySlug}&website=${site.slug}`}
+                      scroll={false}
                       onClick={mobile ? onMobileClose : undefined}
                       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                         currentWebsite === site.slug
@@ -212,7 +214,10 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
           const isExpanded = expandedItems.includes(item.label);
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const itemPath = item.href.split("?")[0];
-          const isActive = pathname === itemPath || (hasSubItems && pathname.startsWith(itemPath));
+          const normalizedPathname = pathname.replace(/\/$/, "").toLowerCase();
+          const normalizedItemPath = itemPath.replace(/\/$/, "").toLowerCase();
+          const isActive = normalizedPathname === normalizedItemPath || (hasSubItems && normalizedPathname.startsWith(normalizedItemPath));
+          console.log(`[${item.label}] pathname: ${pathname}, itemPath: ${itemPath}, isActive: ${isActive}`);
 
           return (
             <div key={item.label} className="space-y-1">
@@ -220,7 +225,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
                 className={`flex items-center gap-3 rounded-xl transition-all duration-200 group relative cursor-pointer
                   ${isOpen || mobile ? "px-3 py-2.5" : "px-2 py-2.5 justify-center"}
                   ${
-                    isActive && !hasSubItems
+                    isActive
                       ? "bg-[#f99d1c] text-white shadow-md shadow-[#f99d1c]/20"
                       : "text-white/60 hover:bg-white/10 hover:text-white"
                   }`}
@@ -231,8 +236,8 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
                 }}
               >
                 {!hasSubItems ? (
-                  <Link href={item.href} className="flex items-center gap-3 w-full" onClick={mobile ? onMobileClose : undefined}>
-                    <span className={`shrink-0 transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110"}`}>
+                  <Link href={item.href} scroll={false} className="flex items-center gap-3 w-full" onClick={mobile ? onMobileClose : undefined}>
+                    <span className={`shrink-0 transition-transform duration-200 ${isActive ? "scale-110 text-white" : "group-hover:scale-110"}`}>
                       {item.icon}
                     </span>
                     {(isOpen || mobile) && (
@@ -241,7 +246,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
                   </Link>
                 ) : (
                   <div className="flex items-center gap-3 w-full">
-                    <span className={`shrink-0 transition-transform duration-200 ${isActive ? "scale-110 text-[#f99d1c]" : "group-hover:scale-110"}`}>
+                    <span className={`shrink-0 transition-transform duration-200 ${isActive ? "scale-110 text-white" : "group-hover:scale-110"}`}>
                       {item.icon}
                     </span>
                     {(isOpen || mobile) && (
@@ -279,6 +284,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
                       <Link
                         key={sub.href}
                         href={sub.href}
+                        scroll={false}
                         onClick={mobile ? onMobileClose : undefined}
                         className={`block py-2 px-3 text-xs rounded-lg transition-all
                           ${

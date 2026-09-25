@@ -95,7 +95,7 @@ function CareerDashboardContent() {
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Applicant</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Job Role (Page)</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Applied Date</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-24">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -134,13 +134,13 @@ function CareerDashboardContent() {
                         <Calendar size={14} /> {new Date(app.appliedAt).toLocaleDateString()}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => setSelectedApp(app)}
                         className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
                         title="View Details"
                       >
-                        <Eye size={20} />
+                        <Eye size={18} className="text-[#f99d1c]" />
                       </button>
                     </td>
                   </tr>
@@ -173,7 +173,7 @@ function CareerDashboardContent() {
                 </div>
                 <div>
                   <h2 className="font-bold text-[#11253e]">Application Details</h2>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Ref: {selectedApp._id.slice(-6).toUpperCase()}</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Ref: {selectedApp._id.slice(-6).toUpperCase()}</p>
                 </div>
               </div>
               <button
@@ -187,17 +187,17 @@ function CareerDashboardContent() {
             <div className="p-8 space-y-8">
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Full Name</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Full Name</p>
                   <p className="text-[#11253e] font-bold">{selectedApp.name}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email Address</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Email Address</p>
                   <p className="text-[#11253e] font-medium">{selectedApp.email}</p>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">LinkedIn Profile</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">LinkedIn Profile</p>
                 <a
                   href={selectedApp.linkedin}
                   target="_blank"
@@ -210,7 +210,7 @@ function CareerDashboardContent() {
 
               {selectedApp.resume && (
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Resume / CV</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Resume / CV</p>
                   <a
                     href={`${API_BASE_URL}${selectedApp.resume}`}
                     target="_blank"
@@ -224,11 +224,11 @@ function CareerDashboardContent() {
 
               <div className="bg-[#f8f9fa] rounded-2xl p-6 border border-gray-100 space-y-4">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Job Role Context</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Job Role Context</p>
                   <p className="text-[#11253e] font-bold text-sm leading-snug">{selectedApp.pageTitle}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Application Source URL</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Application Source URL</p>
                   <p className="text-gray-500 text-[11px] break-all font-mono leading-relaxed">{selectedApp.pageUrl}</p>
                 </div>
               </div>

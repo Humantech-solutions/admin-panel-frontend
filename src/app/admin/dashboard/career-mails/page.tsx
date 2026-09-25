@@ -15,7 +15,8 @@ import {
   Briefcase,
   FileText,
   Download,
-  Filter
+  Filter,
+  Eye,
 } from "lucide-react";
 
 interface CareerMail {
@@ -118,7 +119,7 @@ function CareerMailsDashboardContent() {
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Source Context</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-24">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -154,12 +155,12 @@ function CareerMailsDashboardContent() {
                         {new Date(item.appliedAt || item.createdAt).toLocaleDateString()}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => setSelectedMail(item)}
                         className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
                       >
-                        <FileText size={18} />
+                        <Eye size={18} className="text-[#f99d1c]" />
                       </button>
                     </td>
                   </tr>
@@ -194,7 +195,7 @@ function CareerMailsDashboardContent() {
                   <h2 className="font-bold text-[#11253e]">
                     {selectedMail.type === 'application' ? 'Job Application' : 'Brochure Request'}
                   </h2>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Candidate: {selectedMail.name}</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Candidate: {selectedMail.name}</p>
                 </div>
               </div>
               <button
@@ -208,22 +209,22 @@ function CareerMailsDashboardContent() {
             <div className="p-8 space-y-8">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Full Name</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Full Name</p>
                   <p className="text-[#11253e] font-bold text-sm">{selectedMail.name}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email Address</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Email Address</p>
                   <p className="text-[#11253e] font-medium text-sm">{selectedMail.email}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Submitted At</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Submitted At</p>
                   <p className="text-[#11253e] font-medium text-sm">
                     {new Date(selectedMail.appliedAt || selectedMail.createdAt).toLocaleString()}
                   </p>
                 </div>
                 {selectedMail.linkedin && (
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">LinkedIn Profile</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">LinkedIn Profile</p>
                     <a href={selectedMail.linkedin} target="_blank" className="text-[#f99d1c] text-sm hover:underline flex items-center gap-1">
                       View Profile <ExternalLink size={12} />
                     </a>
@@ -231,7 +232,7 @@ function CareerMailsDashboardContent() {
                 )}
                 {selectedMail.type === 'application' && selectedMail.resume && (
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Resume / CV</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Resume / CV</p>
                     <a
                       href={`${API_BASE_URL}${selectedMail.resume}`}
                       target="_blank"
@@ -246,7 +247,7 @@ function CareerMailsDashboardContent() {
 
               <div className="bg-[#f8f9fa] rounded-2xl p-6 border border-gray-100 space-y-4">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                     <Globe size={12} /> Source Context
                   </div>
                   <p className="text-[#11253e] font-bold text-sm tracking-tight">{selectedMail.pageTitle}</p>

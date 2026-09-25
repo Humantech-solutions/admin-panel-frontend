@@ -217,11 +217,10 @@ function ContactDashboardContent() {
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Inquiry</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Organization / Site</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Source Context</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Source Context</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-24">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -240,20 +239,7 @@ function ContactDashboardContent() {
                         <span className="text-[11px] text-gray-400 font-medium truncate max-w-[180px]">{item.subject}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 max-w-fit">
-                          <Building2 size={11} />
-                          {item.companyId?.name || item.project || "General Organization"}
-                        </span>
-                        {item.websiteId?.name && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-100 max-w-fit">
-                            <Globe size={10} />
-                            {item.websiteId.name}
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                    
                     <td className="px-6 py-4">
                       <div className="flex flex-col min-w-[150px]">
                         <span className="text-xs text-[#11253e] font-bold truncate transition-all" title={item.pageTitle}>
@@ -282,25 +268,19 @@ function ContactDashboardContent() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${
-                          item.status === "New"
-                            ? "bg-orange-50 text-orange-600"
-                            : item.status === "Contacted"
-                            ? "bg-blue-50 text-blue-600"
-                            : "bg-green-50 text-green-600"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
+                        <span className="text-xs font-semibold text-gray-500">
+                          {item.submittedAt || item.createdAt
+                            ? new Date(item.submittedAt || item.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' })
+                            : "-"}
+                        </span>
+                      </td>
+                    <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => setSelectedInquiry(item)}
                         className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
                         title="View Details"
                       >
-                        <Eye size={18} />
+                        <Eye size={18} className="text-[#f99d1c]" />
                       </button>
                     </td>
                   </tr>

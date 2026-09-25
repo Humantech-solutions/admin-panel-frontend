@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageCircle, User, Globe, Search, Calendar, Clock, X, Phone, Mail } from "lucide-react";
+import { MessageCircle, User, Globe, Search, Calendar, Clock, X, Phone, Mail,
+  Eye,
+} from "lucide-react";
 import { API_BASE_URL } from "@/config/api";
 
 interface ChatQuery {
@@ -69,16 +71,16 @@ export default function ChatQueriesPage() {
 
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left">
             <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">User</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Query</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Date</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Action</th>
+              <tr className="bg-gray-50/50 border-b border-gray-100">
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">User</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Query</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-24">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
@@ -97,7 +99,7 @@ export default function ChatQueriesPage() {
                 </tr>
               ) : (
                 filteredQueries.map((item) => (
-                  <tr key={item._id} className="hover:bg-gray-50/50 transition-colors group">
+                  <tr key={item._id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-[#f99d1c]/10 flex items-center justify-center text-[#f99d1c]">
@@ -111,7 +113,7 @@ export default function ChatQueriesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 max-w-[200px]">
+                    <td className="px-6 py-4">
                       <p className="text-sm text-[#11253e] truncate">{item.query}</p>
                     </td>
                     <td className="px-6 py-4">
@@ -126,13 +128,13 @@ export default function ChatQueriesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => setSelectedQuery(item)}
                         className="text-xs font-bold text-[#f99d1c] hover:underline uppercase tracking-wide"
                       >
-                        View
-                      </button>
+                          <Eye size={18} className="text-[#f99d1c]" />
+                        </button>
                     </td>
                   </tr>
                 ))
@@ -156,25 +158,25 @@ export default function ChatQueriesPage() {
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                     <Mail size={10} /> Email
                   </p>
                   <p className="text-sm font-medium text-[#11253e]">{selectedQuery.email}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                     <Phone size={10} /> Phone
                   </p>
                   <p className="text-sm font-medium text-[#11253e]">{selectedQuery.phone || "—"}</p>
                 </div>
               </div>
               <div className="space-y-1 pt-4 border-t border-gray-50">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Query</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Query</p>
                 <p className="text-sm text-[#11253e] leading-relaxed">{selectedQuery.query}</p>
               </div>
               {selectedQuery.pageUrl && (
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                     <Globe size={10} /> Page URL
                   </p>
                   <p className="text-xs text-[#11253e] truncate">{selectedQuery.pageUrl}</p>
