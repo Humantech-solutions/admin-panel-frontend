@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { useParams } from "next/navigation";
 import { API_BASE_URL } from "@/config/api";
 
 export interface Website {
@@ -42,12 +43,14 @@ export interface Company {
 
 interface CompaniesContextValue {
   companies: Company[];
+  currentCompany?: Company;
   loading: boolean;
   refetch: () => Promise<void>;
 }
 
 const CompaniesContext = createContext<CompaniesContextValue>({
   companies: [],
+  currentCompany: undefined,
   loading: true,
   refetch: async () => {},
 });
@@ -55,8 +58,12 @@ const CompaniesContext = createContext<CompaniesContextValue>({
 
 
 export function CompaniesProvider({ children }: { children: ReactNode }) {
+  const params = useParams();
+  const portal = params?.portal as string;
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const currentCompany = companies.find(c => c.slug === portal || c._id === portal);
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true);
@@ -81,7 +88,7 @@ export function CompaniesProvider({ children }: { children: ReactNode }) {
   }, [fetchCompanies]);
 
   return (
-    <CompaniesContext.Provider value={{ companies, loading, refetch: fetchCompanies }}>
+    <CompaniesContext.Provider value={{ companies, currentCompany, loading, refetch: fetchCompanies }}>
       {children}
     </CompaniesContext.Provider>
   );

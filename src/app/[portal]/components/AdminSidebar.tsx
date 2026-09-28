@@ -22,11 +22,11 @@ import {
 import { useCompanies } from "@/lib/useCompanies";
 import { useAuth } from "@/context/AuthContext";
 
-const getCompanyNavItems = (company: string, companyId?: string) => [
-  { label: "Websites", href: `/admin/dashboard/websites?company=${company}`, icon: <Globe size={20} /> },
-  { label: "Employees / Users", href: `/admin/dashboard/employees?company=${company}`, icon: <Briefcase size={20} /> },
-  { label: "Global Settings", href: `/admin/dashboard/settings?company=${company}`, icon: <Settings size={20} /> },
-];
+const getCompanyNavItems = (company: string, role?: string) => { const items = []; if (role === 'company_admin' || role === 'superadmin') { items.push({ label: "Websites", href: `/admin/dashboard/websites?company=${company}`, icon: <Globe size={20} /> }); items.push({ label: "Global Settings", href: `/admin/dashboard/settings?company=${company}`, icon: <Settings size={20} /> }); } return items; };
+
+
+
+
 
 const getWebsiteNavItems = (company: string, website: string) => [
   {
@@ -61,9 +61,10 @@ interface AdminSidebarProps {
   onMobileClose: () => void;
 }
 
-const getSuperAdminNavItems = () => [
-  { label: "Companies & Websites", href: "/organization/companies", icon: <Building2 size={20} /> },
-];
+const getSuperAdminNavItems = (role?: string) => { const items = []; if (['superadmin', 'super_editor', 'super_viewer'].includes(role || '')) { items.push({ label: "Companies & Websites", href: "/organization/companies", icon: <Building2 size={20} /> }); } return items; };
+
+
+
 
 export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: AdminSidebarProps) {
   const pathname = usePathname();
@@ -78,7 +79,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
     setMounted(true);
   }, []);
 
-  const isSuperAdmin = (mounted && user?.role === "superadmin") || pathname.startsWith("/organization");
+  const isSuperAdmin = (mounted && ["superadmin", "super_editor", "super_viewer"].includes(user?.role || "")) || pathname.startsWith("/organization");
 
   const currentCompanySlug = searchParams.get("company") || (user as any)?.companySlug || companies[0]?.slug || "";
   const currentWebsite = searchParams.get("website");
@@ -94,10 +95,10 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
       : { logo: "Admin", name: "Admin Panel", sub: "Admin Log" };
 
   const navItems = isSuperAdmin
-    ? getSuperAdminNavItems()
+    ? getSuperAdminNavItems(user?.role)
     : (currentWebsite && showLogsView)
       ? getWebsiteNavItems(currentCompanySlug, currentWebsite)
-      : getCompanyNavItems(currentCompanySlug, currentCompany?._id);
+      : getCompanyNavItems(currentCompanySlug, user?.role);
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) =>

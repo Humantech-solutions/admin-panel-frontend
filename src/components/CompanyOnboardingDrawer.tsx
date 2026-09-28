@@ -210,7 +210,7 @@ export default function CompanyOnboardingDrawer({
     try {
       const endpoint = editTarget
         ? `${API_BASE_URL}/api/companies/${editTarget._id}`
-        : `${API_BASE_URL}/api/companies`;
+        : `${API_BASE_URL}/api/companies/add`;
       const method = editTarget ? "PUT" : "POST";
 
       const payload: Record<string, any> = {

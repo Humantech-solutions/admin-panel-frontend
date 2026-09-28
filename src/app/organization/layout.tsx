@@ -2,8 +2,8 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AdminSidebar } from "../admin/components/AdminSidebar";
-import { AdminNavbar } from "../admin/components/AdminNavbar";
+import { AdminSidebar } from "../[portal]/components/AdminSidebar";
+import { AdminNavbar } from "../[portal]/components/AdminNavbar";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CompaniesProvider, useCompanies } from "@/lib/useCompanies";
 
@@ -23,7 +23,7 @@ function OrganizationInner({ children }: { children: React.ReactNode }) {
       }
     }
 
-    if (user && user.role !== "superadmin" && !loading) {
+    if (user && !["superadmin", "super_editor", "super_viewer"].includes(user.role) && !loading) {
       const targetSlug = (user as any).companySlug || companies[0]?.slug;
       if (targetSlug) {
         router.replace(`/admin/dashboard?company=${targetSlug}`);

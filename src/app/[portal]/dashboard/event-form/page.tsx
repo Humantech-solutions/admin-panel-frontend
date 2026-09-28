@@ -42,7 +42,7 @@ function EventDashboardContent() {
   const { user } = useAuth();
   const { companies } = useCompanies();
 
-  const isSuperAdmin = user?.role === "superadmin";
+  const isSuperAdmin = ["superadmin", "super_editor", "super_viewer"].includes(user?.role || "");
 
   const urlCompany = searchParams.get("company");
   const urlWebsite = searchParams.get("website");

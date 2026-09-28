@@ -17,7 +17,9 @@ interface AuthResult {
   error?: string;
   mfaRequired?: boolean;
   mfaSetupRequired?: boolean;
+  passwordChangeRequired?: boolean;
   mfaToken?: string;
+  qrCodeUrl?: string;
   message?: string;
   user?: User;
 }
@@ -87,12 +89,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (data.success) {
+        if (data.passwordChangeRequired) {
+          return {
+            success: true,
+            passwordChangeRequired: true,
+            mfaToken: data.mfaToken,
+            message: data.message
+          };
+        }
+
         if (data.mfaRequired || data.mfaSetupRequired) {
           return {
             success: true,
             mfaRequired: data.mfaRequired,
             mfaSetupRequired: data.mfaSetupRequired,
             mfaToken: data.mfaToken,
+            qrCodeUrl: data.qrCodeUrl,
             message: data.message
           };
         }

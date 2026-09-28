@@ -14,14 +14,19 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [mfaStep, setMfaStep] = useState<"login" | "otp" | "change_password" | "setup_company">("login");
+  const [mfaStep, setMfaStep] = useState<"login" | "otp" | "change_password" | "setup_company" | "forgot_password">("login");
   const [mfaToken, setMfaToken] = useState("");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [mfaTab, setMfaTab] = useState("app");
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [resetQrSuccess, setResetQrSuccess] = useState(false);
   const [mfaMessage, setMfaMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Company Setup states
   const [setupSlide, setSetupSlide] = useState<1 | 2>(1);
@@ -39,14 +44,14 @@ export default function AdminLoginPage() {
   const [pendingUser, setPendingUser] = useState<any>(null);
 
   const redirectUser = (u: any) => {
-    if (u?.role === "superadmin") {
+    if (["superadmin", "super_editor", "super_viewer"].includes(u?.role)) {
       router.push("/organization/companies");
     } else {
-      const companySlug = u?.companySlug || u?.companyId;
+      const companySlug = u?.companySlug;
       if (companySlug) {
-        router.push(`/admin/dashboard?company=${companySlug}`);
+        router.push(`/${companySlug}/dashboard`);
       } else {
-        router.push("/admin/dashboard");
+        router.push(`/${companySlug}/dashboard`);
       }
     }
   };
@@ -74,9 +79,14 @@ export default function AdminLoginPage() {
     setLoading(false);
     
     if (result.success) {
-      if (result.mfaRequired || result.mfaSetupRequired) {
+      if ((result as any).passwordChangeRequired) {
+        setMfaToken((result as any).mfaToken || "");
+        setMfaStep("change_password");
+        setPendingUser(null); // Wait for MFA later
+      } else if (result.mfaRequired || result.mfaSetupRequired) {
         setMfaStep("otp");
         setMfaToken(result.mfaToken || "");
+        setQrCodeUrl(result.qrCodeUrl || "");
         setMfaMessage(result.message || "");
       } else {
         checkNextStep(result.user);
@@ -97,6 +107,7 @@ export default function AdminLoginPage() {
       checkNextStep(result.user);
     } else {
       setError(result.error || "Verification failed.");
+      setOtp("");
     }
   };
 
@@ -115,19 +126,47 @@ export default function AdminLoginPage() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const res = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ newPassword }),
-      });
+      let res;
+      if (token) {
+        res = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ newPassword }),
+        });
+      } else if (mfaToken) {
+        res = await fetch(`${API_BASE_URL}/api/auth/change-password-temp`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ mfaToken, newPassword }),
+        });
+      } else {
+        setError("Invalid state. Please try logging in again.");
+        setLoading(false);
+        return;
+      }
+      
       const data = await res.json();
       if (data.success) {
-        const updatedUser = { ...pendingUser, mustChangePassword: false };
-        sessionStorage.setItem("adminUser", JSON.stringify(updatedUser));
-        checkNextStep(updatedUser);
+        if (data.mfaSetupRequired) {
+          setQrCodeUrl(data.qrCodeUrl || "");
+          setMfaToken(data.mfaToken || mfaToken);
+          setMfaStep("otp");
+          setMfaMessage("Please set up Google Authenticator.");
+        } else {
+          if (pendingUser) {
+            const updatedUser = { ...pendingUser, mustChangePassword: false };
+            sessionStorage.setItem("adminUser", JSON.stringify(updatedUser));
+            checkNextStep(updatedUser);
+          } else {
+            // Should not happen unless there's no MFA required and no pending user
+            setError("Password updated, please log in again.");
+          }
+        }
       } else {
         setError(data.message || "Failed to update password.");
       }
@@ -138,7 +177,89 @@ export default function AdminLoginPage() {
     }
   };
 
-  const handleNextSlide = () => {
+  const handleResetMfaQr = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/reset-mfa-qr`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mfaToken, otp })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setResetQrSuccess(true);
+      setMfaMessage(data.message);
+    } else {
+      setError(data.message);
+      setOtp("");
+    }
+  } catch (err) {
+    setError("Network error resetting QR.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleForgotPassword = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setMfaToken(data.mfaToken);
+      setMfaMessage(data.message);
+      setMfaTab(data.mfaEnabled === false ? "email" : "app");
+      if (data.mfaEnabled === false) {
+        // Auto-send email OTP if they never set up Google Auth
+        await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mfaToken: data.mfaToken, purpose: "forgot_password" })
+        });
+        setEmailOtpSent(true);
+      }
+      setMfaStep("otp");
+    } else {
+      setError(data.message || "Request failed.");
+    }
+  } catch {
+    setError("Network error. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleSendEmailOtp = async () => {
+  setLoading(true);
+  setError("");
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mfaToken, purpose: mfaTab === "reset_qr" ? "reset_mfa" : mfaMessage.includes("reset your password") ? "forgot_password" : "login" })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setEmailOtpSent(true);
+    } else {
+      setError(data.message);
+    }
+  } catch (err) {
+    setError("Network error sending OTP.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleNextSlide = () => {
     setError("");
     if (!setupCompanyName.trim()) {
       setError("Company name is required.");
@@ -214,7 +335,7 @@ export default function AdminLoginPage() {
         <div className="absolute bottom-12 left-12 z-10">
           <h2 className="text-5xl font-bold text-white mb-4 tracking-tight">Admin</h2>
           <p className="text-white/80 max-w-md text-lg font-light leading-relaxed">
-            Unified management console for Nabhira Technologies, Hutech Website, and Hutech Lab.
+            "Unified management console for all connected companies." for SahajCRM, Hutech Website, and Hutech Lab.
           </p>
         </div>
       </div>
@@ -244,7 +365,7 @@ export default function AdminLoginPage() {
                       </svg>
                     </span>
                     <input
-                      type="email"
+                      type="text"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="admin@hutech.com"
@@ -287,6 +408,15 @@ export default function AdminLoginPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                       )}
+                    </button>
+                  </div>
+                  <div className="text-right mt-2">
+                    <button
+                      type="button"
+                      onClick={() => { setMfaStep("forgot_password"); setError(""); }}
+                      className="text-[#f99d1c] hover:underline text-xs font-bold transition-colors"
+                    >
+                      Forgot Password?
                     </button>
                   </div>
                 </div>
@@ -333,19 +463,100 @@ export default function AdminLoginPage() {
                 </p>
               </div>
             </>
-          ) : mfaStep === "otp" ? (
+          ) : mfaStep === "forgot_password" ? (
             <>
               <div className="mb-8 text-center lg:text-left">
-                <h1 className="text-3xl font-bold text-[#11253e] mb-2 tracking-tight">Security Verification</h1>
-                <p className="text-gray-500 font-medium text-xs">{mfaMessage}</p>
+                <h1 className="text-3xl font-bold text-[#11253e] mb-2 tracking-tight">Reset Password</h1>
+                <p className="text-gray-500 font-medium text-xs">Enter your email to receive a password reset link or verify via MFA.</p>
               </div>
 
-              <form onSubmit={handleOtpSubmit} className="space-y-5">
+              <form onSubmit={handleForgotPassword} className="space-y-5">
                 <div>
                   <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">
-                    Authenticator Code
+                    Email Address
                   </label>
                   <div className="relative group">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f99d1c] transition-colors">
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="admin@hutech.com"
+                      required
+                      className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-2xl text-[#11253e] font-semibold placeholder-gray-400 focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-[15px] shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
+                    <span className="text-red-600 text-xs font-bold">{error}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || !email}
+                  className="w-full bg-[#f99d1c] hover:bg-[#e8900f] text-white font-bold py-3.5 rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 shadow-xl shadow-[#f99d1c]/20 disabled:opacity-50 disabled:cursor-not-allowed group"
+                >
+                  {loading ? "Processing..." : "Continue"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setMfaStep("login"); setError(""); }}
+                  className="w-full text-gray-500 hover:text-[#11253e] font-bold text-xs transition-colors py-2"
+                >
+                  Back to login
+                </button>
+              </form>
+            </>
+          ) : mfaStep === "otp" ? (
+  <>
+    {!resetQrSuccess && (
+      <div className="mb-6 text-center lg:text-left">
+      <h1 className="text-3xl font-bold text-[#11253e] mb-2 tracking-tight">
+        {mfaTab === 'reset_qr' ? 'Reset Authenticator' : 'Security Verification'}
+      </h1>
+      <p className="text-gray-500 font-medium text-xs">
+        {mfaTab === 'reset_qr' ? 'Verify your identity to reset MFA.' : mfaMessage}
+      </p>
+    </div>
+    )}
+
+    {qrCodeUrl && !resetQrSuccess && mfaTab === 'app' && (
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 mx-auto text-center">
+        <img src={qrCodeUrl} alt="MFA QR Code" className="mx-auto w-48 h-48" />
+      </div>
+    )}
+
+    {!resetQrSuccess && mfaTab !== 'reset_qr' && (
+      <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
+      <button type="button" onClick={() => setMfaTab('app')} className={'flex-1 py-2 text-sm font-bold rounded-lg transition-all ' + (mfaTab === 'app' ? 'bg-white text-[#11253e] shadow-sm' : 'text-gray-500 hover:text-[#11253e]')}>Google Auth</button>
+      <button type="button" onClick={() => setMfaTab('email')} className={'flex-1 py-2 text-sm font-bold rounded-lg transition-all ' + (mfaTab === 'email' ? 'bg-white text-[#11253e] shadow-sm' : 'text-gray-500 hover:text-[#11253e]')}>Email OTP</button>
+    </div>
+    )}
+
+    {mfaTab === 'email' && !emailOtpSent && (
+      <div className="text-center mb-6">
+        <p className="text-sm text-gray-500 mb-4">Click below to send a one-time passcode to your registered email address.</p>
+        <button type="button" onClick={handleSendEmailOtp} disabled={loading} className="bg-[#f99d1c] hover:bg-[#e08b17] text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md">
+          {loading ? "Sending..." : "Send Email OTP"}
+        </button>
+      </div>
+    )}
+
+    {(mfaTab === "app" || mfaTab === "email") && ((mfaTab === "app" || emailOtpSent) && (
+    <form onSubmit={handleOtpSubmit} className="space-y-5">
+      <div>
+        <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">
+          {mfaTab === 'app' ? 'Authenticator Code' : 'Email OTP Code'}
+        </label>
+        <div className="relative group">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#f99d1c] transition-colors">
                       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -357,11 +568,13 @@ export default function AdminLoginPage() {
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                       placeholder="000000"
                       required
-                      autoFocus
+                      autoComplete="one-time-code"
+                        autoFocus
                       className="w-full pl-12 pr-4 py-3.5 bg-gray-100 border-2 border-gray-300 rounded-2xl text-[#11253e] font-bold tracking-[0.5em] placeholder-gray-400 focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-xl shadow-sm text-center"
                     />
                   </div>
                 </div>
+                  <div className="text-right mt-2"><button type="button" onClick={() => { setMfaTab('reset_qr'); setOtp(''); setEmailOtpSent(false); }} className="text-[#f99d1c] hover:underline text-xs font-bold transition-colors">Lost Authenticator app? Re-setup</button></div>
 
                 {error && (
                   <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
@@ -387,8 +600,46 @@ export default function AdminLoginPage() {
                   className="w-full text-gray-500 hover:text-[#11253e] font-bold text-xs transition-colors py-2"
                 >
                   Back to login
-                </button>
-              </form>
+                  </button>
+                </form>
+              ))} 
+    {mfaTab === "reset_qr" && !resetQrSuccess && (
+      <div className="text-center mb-6 animate-in fade-in">
+        <p className="text-sm text-gray-500 mb-4">We will send an Email OTP to verify your identity before resetting your Google Authenticator.</p>
+        {!emailOtpSent ? (
+          <button type="button" onClick={handleSendEmailOtp} disabled={loading} className="w-full bg-[#f99d1c] hover:bg-[#e08b17] text-white font-bold py-3.5 rounded-2xl transition-all shadow-md">
+            {loading ? "Sending OTP..." : "Send Verification OTP"}
+          </button>
+        ) : (
+          <form onSubmit={handleResetMfaQr} className="space-y-5 text-left mt-6">
+            <div>
+              <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">Email Verification Code</label>
+              <div className="relative group">
+                <input type="text" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" required className="w-full pl-4 pr-4 py-3.5 bg-gray-100 border-2 border-gray-300 rounded-2xl text-[#11253e] font-bold tracking-[0.5em] placeholder-gray-400 focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-xl shadow-sm text-center" />
+              </div>
+            </div>
+            <button type="submit" disabled={loading || otp.length < 6} className="w-full bg-[#11253e] hover:bg-[#030213] text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-3">
+              {loading ? "Verifying..." : "Verify & Get New QR"}
+            </button>
+          </form>
+        )}
+        <div className="mt-4"><button type="button" onClick={() => { setMfaTab("app"); setOtp(""); setEmailOtpSent(false); }} className="text-gray-500 hover:text-[#11253e] text-xs font-bold transition-colors">Cancel</button></div>
+      </div>
+    )}
+
+    {mfaTab === "reset_qr" && resetQrSuccess && (
+      <div className="text-center mb-6 animate-in fade-in">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+        </div>
+        <h3 className="text-lg font-bold text-[#11253e] mb-2">Check your email</h3>
+        <p className="text-sm text-gray-500 mb-6">A new Google Authenticator QR code has been sent to your email. Please scan it with your app.</p>
+        <button type="button" onClick={() => { setMfaTab("app"); setResetQrSuccess(false); setOtp(""); setMfaStep("login"); }} className="w-full bg-[#f99d1c] hover:bg-[#e08b17] text-white font-bold py-3.5 rounded-2xl transition-all shadow-md">
+          Back to Login
+        </button>
+      </div>
+    )}
+
             </>
           ) : mfaStep === "change_password" ? (
             <>
@@ -409,30 +660,66 @@ export default function AdminLoginPage() {
                   <label className="block text-[#11253e] text-xs font-bold mb-1.5 ml-1">
                     New Password
                   </label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    required
-                    minLength={6}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
-                  />
+                  <div className="relative group">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      required
+                      minLength={6}
+                      className="w-full px-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#11253e] transition-colors"
+                    >
+                      {showPassword ? (
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268-2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                      ) : (
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-[#11253e] text-xs font-bold mb-1.5 ml-1">
                     Confirm New Password
                   </label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    required
-                    minLength={6}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
-                  />
+                  <div className="relative group">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      required
+                      minLength={6}
+                      className="w-full px-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#11253e] transition-colors"
+                    >
+                      {showConfirmPassword ? (
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268-2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                      ) : (
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {error && (
