@@ -43,7 +43,8 @@ function ContactDashboardContent() {
   const { user } = useAuth();
   const { companies } = useCompanies();
 
-  const isSuperAdmin = user?.role === "superadmin";
+  const isSuperAdmin = ["superadmin", "super_editor", "super_viewer"].includes(user?.role || "");
+  const isViewer = user?.role === "super_viewer" || user?.role === "company_viewer" || user?.role === "viewer";
 
   const categoryFilter = searchParams.get("category");
   const urlCompany = searchParams.get("company");
@@ -396,7 +397,8 @@ function ContactDashboardContent() {
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-gray-100">
+                {!isViewer && (
+                  <div className="pt-4 border-t border-gray-100">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Action Status</p>
                   <div className="flex gap-2">
                     {["New", "Contacted", "Closed"].map((st) => (
@@ -414,6 +416,7 @@ function ContactDashboardContent() {
                     ))}
                   </div>
                 </div>
+                )}
               </div>
 
               {/* Right Column: Message Content */}

@@ -30,9 +30,13 @@ export default function OrganizationCompaniesPage() {
   const router = useRouter();
   const { companies, loading, refetch } = useCompanies();
 
+  const isAdmin = user?.role === "superadmin";
+  const isEditor = user?.role === "super_editor";
+  const isViewer = user?.role === "super_viewer";
+
   // Role check: Only Super Admin / Product Owner can access
   useEffect(() => {
-    if (user && user.role !== "superadmin" && !loading) {
+    if (user && !["superadmin", "super_editor", "super_viewer"].includes(user.role) && !loading) {
       const targetSlug = (user as any).companySlug || companies[0]?.slug;
       if (targetSlug) {
         router.replace(`/admin/dashboard?company=${targetSlug}`);
@@ -133,13 +137,15 @@ export default function OrganizationCompaniesPage() {
             </p>
           </div>
 
-          <button
-            onClick={openAdd}
-            className="inline-flex items-center gap-2 bg-[#f99d1c] hover:bg-[#e88f10] text-white text-sm font-bold px-6 py-3.5 rounded-2xl shadow-xl shadow-[#f99d1c]/30 transition-all shrink-0 active:scale-95"
-          >
-            <Plus size={18} />
-            Onboard Company
-          </button>
+          {isAdmin && (
+            <button
+              onClick={openAdd}
+              className="inline-flex items-center gap-2 bg-[#f99d1c] hover:bg-[#e88f10] text-white text-sm font-bold px-6 py-3.5 rounded-2xl shadow-xl shadow-[#f99d1c]/30 transition-all shrink-0 active:scale-95"
+            >
+              <Plus size={18} />
+              Onboard Company
+            </button>
+          )}
         </div>
 
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
@@ -374,20 +380,24 @@ export default function OrganizationCompaniesPage() {
 
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEdit(company)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-[#11253e] hover:bg-gray-100 transition-all"
-                          title="Edit Company"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(company)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                          title="Delete Company"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {(isAdmin || isEditor) && (
+                          <button
+                            onClick={() => openEdit(company)}
+                            className="p-2 rounded-lg text-gray-400 hover:text-[#11253e] hover:bg-gray-100 transition-all"
+                            title="Edit Company"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => setDeleteTarget(company)}
+                            className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                            title="Delete Company"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

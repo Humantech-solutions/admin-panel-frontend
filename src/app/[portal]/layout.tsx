@@ -1,7 +1,7 @@
 import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata = {
-  title: "Admin – Nabhira",
+  title: "Admin – SahajCRM",
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

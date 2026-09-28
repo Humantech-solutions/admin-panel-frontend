@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, User, Settings, LogOut } from "lucide-react";
+import { ChevronDown, User, Settings, LogOut, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -81,6 +81,16 @@ export function AdminNavbar({ onMobileMenuOpen }: AdminNavbarProps) {
                 <User className="w-3.5 h-3.5" />
                 My Profile
               </Link>
+              {(user?.role === "superadmin" || user?.role === "company_admin") && (
+                <Link
+                  href={["superadmin", "super_editor", "super_viewer"].includes(user?.role || "") ? "/organization/dashboard/collaborators" : `/admin/dashboard/collaborators?company=${company}`}
+                  className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                  onClick={() => setShowProfileDropdown(false)}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Collaborators
+                </Link>
+              )}
               <button className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
                 <Settings className="w-3.5 h-3.5" />
                 Settings

@@ -6,9 +6,10 @@ import Image from "next/image";
 import adminBg from "@/../public/assets/admin_login_bg.png";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import { API_BASE_URL } from "@/config/api";
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, login, verifyMfa } = useAuth();
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -18,17 +19,59 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // MFA Setup states
+  const [mfaStep, setMfaStep] = useState<"register" | "mfa_setup">("register");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [mfaToken, setMfaToken] = useState("");
+  const [otp, setOtp] = useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     const result = await register(name, email, password);
-    setLoading(false);
 
     if (result.success) {
-      setSuccess(true);
+      // Auto login to trigger MFA Setup
+      const loginResult = await login(email, password);
+      setLoading(false);
+      
+      if (loginResult.success && loginResult.mfaSetupRequired) {
+        setQrCodeUrl(loginResult.qrCodeUrl || "");
+        setMfaToken(loginResult.mfaToken || "");
+        setMfaStep("mfa_setup");
+      } else {
+        // Fallback
+        setSuccess(true);
+      }
     } else {
+      setLoading(false);
       setError(result.error || "Registration failed.");
+    }
+  };
+
+  const handleMfaSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/verify-mfa`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mfaToken, otp }),
+        });
+        const data = await response.json();
+        setLoading(false);
+        
+        if (data.success) {
+           setSuccess(true);
+        } else {
+           setError(data.message || "Invalid Authenticator code");
+           setOtp("");
+        }
+    } catch(err) {
+        setLoading(false);
+        setError("Network error");
     }
   };
 
@@ -47,20 +90,19 @@ export default function RegisterPage() {
         <div className="absolute bottom-12 left-12 z-10">
           <h2 className="text-5xl font-bold text-white mb-4 tracking-tight">Admin Portal</h2>
           <p className="text-white/80 max-w-md text-lg font-light leading-relaxed">
-            Unified management console for Nabhira Technologies, Hutech Website, and Hutech Lab.
+            Unified management console for SahajCRM, Hutech Website, and Hutech Lab.
           </p>
         </div>
       </div>
 
-      {/* Right side: Register Form */}
+      {/* Right side: Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 md:p-16 lg:p-24 bg-white relative">
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#f99d1c]/5 rounded-bl-full pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#11253e]/5 rounded-tl-full pointer-events-none" />
 
         <div className="w-full max-w-md relative z-10">
 
-
-          {!success ? (
+          {mfaStep === "register" && !success ? (
             <>
               <div className="mb-10 text-center lg:text-left">
                 <h1 className="text-3xl font-bold text-[#11253e] mb-2 tracking-tight">Create Account</h1>
@@ -124,7 +166,7 @@ export default function RegisterPage() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="********"
                       required
                       className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl text-[#11253e] font-semibold placeholder-gray-400 focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-[15px] shadow-sm"
                     />
@@ -183,28 +225,81 @@ export default function RegisterPage() {
               <div className="mt-8 text-center">
                 <p className="text-gray-500 font-medium text-sm">
                   Already have an account?{" "}
-                  <Link href="/login" className="text-[#f99d1c] font-bold hover:underline">
+                  <Link href="/admin/login" className="text-[#f99d1c] font-bold hover:underline">
                     Sign In
                   </Link>
                 </p>
               </div>
             </>
+          ) : mfaStep === "mfa_setup" && !success ? (
+            <div className="text-center animate-in fade-in">
+              <h1 className="text-3xl font-bold text-[#11253e] mb-2 tracking-tight">Setup Authenticator</h1>
+              <p className="text-gray-500 font-medium mb-6 text-sm">
+                Scan the QR code below with your Google Authenticator app, then enter the 6-digit code to complete setup.
+              </p>
+              
+              {qrCodeUrl && (
+                <div className="bg-white p-4 inline-block rounded-2xl shadow-sm border border-gray-100 mb-8 mx-auto">
+                  <Image src={qrCodeUrl} alt="MFA QR Code" width={200} height={200} className="mx-auto" />
+                </div>
+              )}
+
+              <form onSubmit={handleMfaSetup} className="space-y-6 text-left">
+                <div>
+                  <label className="block text-[#11253e] text-sm font-bold mb-2 ml-1">
+                    Authenticator Code
+                  </label>
+                  <div className="relative group">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#f99d1c] transition-colors">
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="000000"
+                      required
+                      autoComplete="one-time-code"
+                      autoFocus
+                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl text-[#11253e] font-bold tracking-[0.5em] placeholder-gray-400 focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-4 focus:ring-[#f99d1c]/10 transition-all text-xl shadow-sm text-center"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-2xl px-5 py-4">
+                    <span className="text-red-600 text-sm font-bold">{error}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || otp.length !== 6}
+                  className="w-full bg-[#f99d1c] hover:bg-[#e8900f] text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-xl disabled:opacity-50"
+                >
+                  {loading ? "Verifying..." : "Verify & Complete Setup"}
+                </button>
+              </form>
+            </div>
           ) : (
-            <div className="text-center">
-              <div className="w-20 h-20 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center mx-auto mb-8 shadow-sm">
-                <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#16a34a" strokeWidth={3}>
+            <div className="text-center animate-in fade-in zoom-in">
+              <div className="w-24 h-24 rounded-full bg-green-50 border-4 border-green-100 flex items-center justify-center mx-auto mb-8 shadow-md">
+                <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="#16a34a" strokeWidth={3.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <h1 className="text-3xl font-bold text-[#11253e] mb-4 tracking-tight">Account Created!</h1>
-              <p className="text-gray-500 font-medium mb-8 leading-relaxed">
-                Registration successful. Two-Factor Authentication setup is required. Please sign in to verify your account and obtain the setup code.
+              <p className="text-gray-500 font-medium mb-8 leading-relaxed text-sm">
+                Registration and Two-Factor Authentication setup completed successfully. Your account is now fully secured.
               </p>
               <button
-                onClick={() => router.push("/login")}
-                className="w-full bg-[#11253e] hover:bg-[#030213] text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-xl shadow-[#11253e]/20"
+                onClick={() => router.push("/admin/login")}
+                className="w-full bg-[#11253e] hover:bg-[#030213] text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-xl shadow-[#11253e]/20 group"
               >
                 Proceed to Login
+                <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">?</span>
               </button>
             </div>
           )}
@@ -212,7 +307,7 @@ export default function RegisterPage() {
           {/* Copyright notice */}
           <div className="mt-20 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-8">
             <p className="text-gray-400 text-[11px] tracking-[0.2em] uppercase font-bold">
-              © {new Date().getFullYear()} Hutech Group
+              (c) {new Date().getFullYear()} Hutech Group
             </p>
           </div>
         </div>
