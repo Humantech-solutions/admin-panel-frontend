@@ -46,11 +46,11 @@ const getWebsiteNavItems = (company: string, website: string) => [
       { label: "Career Contact", href: `/admin/dashboard/contact-form?company=${company}&website=${website}&category=Career` },
     ],
   },
-  { label: "Sales Mails", href: `/admin/dashboard/sales-mails?company=${company}&website=${website}`, icon: <Mail size={20} /> },
+
   { label: "Document Requests", href: `/admin/dashboard/document-requests?company=${company}&website=${website}`, icon: <FileText size={20} /> },
   { label: "Event Form", href: `/admin/dashboard/event-form?company=${company}&website=${website}`, icon: <Calendar size={20} /> },
   { label: "Career Applications", href: `/admin/dashboard/career?company=${company}&website=${website}`, icon: <Briefcase size={20} /> },
-  { label: "Career Mails", href: `/admin/dashboard/career-mails?company=${company}&website=${website}`, icon: <FileText size={20} /> },
+
   { label: "Chat Queries", href: `/admin/dashboard/chat-queries?company=${company}&website=${website}`, icon: <MessageSquare size={20} /> },
 ];
 
