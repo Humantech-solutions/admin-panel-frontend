@@ -44,13 +44,16 @@ const getWebsiteNavItems = (company: string, website: string) => [
       { label: "Blog", href: `/admin/dashboard/contact-form?company=${company}&website=${website}&category=Blog` },
       { label: "Service", href: `/admin/dashboard/contact-form?company=${company}&website=${website}&category=Service` },
       { label: "Career Contact", href: `/admin/dashboard/contact-form?company=${company}&website=${website}&category=Career` },
+
     ],
   },
 
   { label: "Document Requests", href: `/admin/dashboard/document-requests?company=${company}&website=${website}`, icon: <FileText size={20} /> },
+  { label: "Subscribed", href: `/admin/dashboard/subscriptions?company=${company}&website=${website}`, icon: <Mail size={20} /> },
   { label: "Event Form", href: `/admin/dashboard/event-form?company=${company}&website=${website}`, icon: <Calendar size={20} /> },
   { label: "Career Applications", href: `/admin/dashboard/career?company=${company}&website=${website}`, icon: <Briefcase size={20} /> },
 
+  { label: "Sales Mails", href: `/admin/dashboard/sales-mails?company=${company}&website=${website}`, icon: <Mail size={20} /> },
   { label: "Chat Queries", href: `/admin/dashboard/chat-queries?company=${company}&website=${website}`, icon: <MessageSquare size={20} /> },
 ];
 
@@ -84,7 +87,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
   const currentCompanySlug = searchParams.get("company") || (user as any)?.companySlug || companies[0]?.slug || "";
   const currentWebsite = searchParams.get("website");
 
-  const showLogsView = searchParams.get("logs") === "true" || pathname.includes("/contact-form") || pathname.includes("/event-form") || pathname.includes("/career") || pathname.includes("/chat") || pathname.includes("/sales-mails") || pathname.includes("/document-requests");
+  const showLogsView = searchParams.get("logs") === "true" || pathname.includes("/contact-form") || pathname.includes("/event-form") || pathname.includes("/career") || pathname.includes("/chat") || pathname.includes("/sales-mails") || pathname.includes("/document-requests") || pathname.includes("/subscriptions");
 
   const currentCompany = companies.find((c) => c.slug === currentCompanySlug) ?? companies[0];
 
@@ -211,14 +214,13 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
 
       {/* Nav items */}
       <nav className="flex-1 px-2 py-2 space-y-1 overflow-y-auto custom-scrollbar">
-        {navItems.map((item) => {
+        {navItems.map((item: any) => {
           const isExpanded = expandedItems.includes(item.label);
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const itemPath = item.href.split("?")[0];
           const normalizedPathname = pathname.replace(/\/$/, "").toLowerCase();
           const normalizedItemPath = itemPath.replace(/\/$/, "").toLowerCase();
           const isActive = normalizedPathname === normalizedItemPath || (hasSubItems && normalizedPathname.startsWith(normalizedItemPath));
-          console.log(`[${item.label}] pathname: ${pathname}, itemPath: ${itemPath}, isActive: ${isActive}`);
 
           return (
             <div key={item.label} className="space-y-1">
