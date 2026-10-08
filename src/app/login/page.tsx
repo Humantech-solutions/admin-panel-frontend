@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
 
   const redirectUser = (u: any) => {
     if (["superadmin", "super_editor", "super_viewer"].includes(u?.role)) {
-      router.push("/organization/companies");
+      window.location.href = "/organization/companies";
     } else {
       const companySlug = u?.companySlug;
       if (companySlug) {
@@ -306,10 +306,13 @@ const handleNextSlide = () => {
           adminSmtp: adminSmtpPayload
         }),
       });
-      const data = await res.json();
-      if (data.success) {
-        sessionStorage.setItem("adminUser", JSON.stringify(data.user));
-        redirectUser(data.user);
+              const data = await res.json();
+        if (data.success) {
+          if (data.token) {
+            sessionStorage.setItem("adminToken", data.token);
+          }
+          sessionStorage.setItem("adminUser", JSON.stringify(data.user));
+          redirectUser(data.user);
       } else {
         setError(data.message || "Failed to setup company.");
       }
