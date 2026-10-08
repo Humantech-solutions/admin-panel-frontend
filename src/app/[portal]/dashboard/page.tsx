@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useCompanies } from "@/lib/useCompanies";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL } from "@/config/api";
 import Link from "next/link";
 import {
   Globe,
@@ -24,7 +25,7 @@ import {
 
 function DashboardContent() {
   const { user } = useAuth();
-  const { companies } = useCompanies();
+  const { companies, refetch } = useCompanies();
   const searchParams = useSearchParams();
   const companySlug = searchParams.get("company") || (user as any)?.companySlug || companies[0]?.slug || "";
   const website = searchParams.get("website");
@@ -32,41 +33,50 @@ function DashboardContent() {
   const showLogs = searchParams.get("logs") === "true";
 
   const currentCompany = companies.find((c) => c.slug === companySlug) || companies[0];
-
-  // Websites list (managed per company)
-  const [websites, setWebsites] = useState<Array<{
-    id: string;
-    name: string;
-    url: string;
-    description: string;
-    active: boolean;
-    color: string;
-  }>>([]);
+  const companyWebsites = (currentCompany as any)?.websites || [];
 
   // Modal state
   const [showAddWebsite, setShowAddWebsite] = useState(false);
   const [newWebsite, setNewWebsite] = useState({ name: "", slug: "", url: "", description: "" });
+  const [useCompanySmtp, setUseCompanySmtp] = useState(true);
+  const [smtpConfig, setSmtpConfig] = useState({ host: "", port: "587", user: "", pass: "", secure: false });
 
-  const handleAddWebsite = (e: React.FormEvent) => {
+  const handleAddWebsite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWebsite.name || !newWebsite.url) return;
+    if (!newWebsite.name || !newWebsite.url || !currentCompany) return;
 
-    const slug = newWebsite.slug || newWebsite.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const created = {
-      id: slug,
-      name: newWebsite.name,
-      url: newWebsite.url,
-      description: newWebsite.description || "Company digital website.",
-      active: true,
-      color: "from-[#11253e] to-[#1a3d66]",
-    };
+    try {
+      const token = sessionStorage.getItem("adminToken");
+      const res = await fetch(`${API_BASE_URL}/api/websites/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: newWebsite.name,
+          slug: newWebsite.slug || newWebsite.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          url: newWebsite.url,
+          companyId: currentCompany._id,
+          isActive: true,
+          ...(!useCompanySmtp ? { smtpConfig } : {})
+        }),
+      });
 
-    setWebsites((prev) => [...prev, created]);
-    setNewWebsite({ name: "", slug: "", url: "", description: "" });
-    setShowAddWebsite(false);
+      const data = await res.json();
+      if (data.success) {
+        setShowAddWebsite(false);
+        setNewWebsite({ name: "", slug: "", url: "", description: "" });
+        await refetch();
+      } else {
+        alert(data.message || "Failed to add website");
+      }
+    } catch (err) {
+      console.error("Error adding website:", err);
+      alert("Error adding website");
+    }
   };
 
-  const companyWebsites = (currentCompany as any)?.websites || [];
   const selectedSite = companyWebsites.find((w: any) => w._id === website || w.slug === website || w.id === website) || {
     name: currentCompany?.name ? `${currentCompany.name} Website` : "Main Website",
     url: "#",
@@ -107,7 +117,10 @@ function DashboardContent() {
             </div>
 
             <button
-              onClick={() => setShowAddWebsite(true)}
+              onClick={() => {
+                setShowAddWebsite(true);
+                setUseCompanySmtp(companyWebsites.length > 0);
+              }}
               className="inline-flex items-center gap-2 bg-[#f99d1c] hover:bg-[#e88f10] text-white text-sm font-semibold px-6 py-3.5 rounded-2xl shadow-lg shadow-[#f99d1c]/30 transition-all shrink-0 active:scale-95"
             >
               <Plus size={18} />
@@ -121,14 +134,14 @@ function DashboardContent() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-[#11253e]">Company Websites</h2>
-              <p className="text-xs text-gray-400">Click a website or Admin Logs to view its dashboard.</p>
+              <p className="text-xs text-gray-400">Click a website's Dashboard to view its analytics and logs.</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {websites.map((site) => (
+            {(currentCompany?.websites || []).map((site: any) => (
               <div
-                key={site.id}
+                key={site._id || site.slug || site.name}
                 className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
               >
                 <div>
@@ -146,12 +159,12 @@ function DashboardContent() {
                       Live
                     </span>
                   </div>
-                  <p className="text-gray-500 text-xs leading-relaxed mb-6">{site.description}</p>
+                  <p className="text-gray-500 text-xs leading-relaxed mb-6">{site.description || "Company digital website."}</p>
                 </div>
 
                 <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
                   <a
-                    href={site.url}
+                    href={site.url || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 py-2.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-600 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-colors"
@@ -160,10 +173,10 @@ function DashboardContent() {
                     View Site
                   </a>
                   <Link
-                    href={`/admin/dashboard?company=${companySlug}&website=${site.id}`}
+                    href={`/admin/dashboard?company=${companySlug}&website=${site._id}`}
                     className="flex-1 py-2.5 px-4 bg-[#11253e] hover:bg-[#1a3d66] text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-colors shadow-sm"
                   >
-                    Admin Logs
+                    Dashboard
                     <ChevronRight size={14} />
                   </Link>
                 </div>
@@ -250,6 +263,85 @@ function DashboardContent() {
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm resize-none"
                   />
                 </div>
+
+                {companyWebsites.length > 0 && (
+                  <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <input
+                      type="checkbox"
+                      id="useCompanySmtp"
+                      checked={useCompanySmtp}
+                      onChange={(e) => setUseCompanySmtp(e.target.checked)}
+                      className="w-4 h-4 text-[#f99d1c] focus:ring-[#f99d1c] rounded border-gray-300"
+                    />
+                    <label htmlFor="useCompanySmtp" className="text-sm font-bold text-gray-700 cursor-pointer">
+                      Use same SMTP setup as Company
+                    </label>
+                  </div>
+                )}
+
+                {!useCompanySmtp && (
+                  <div className="space-y-4 p-4 border border-gray-200 rounded-xl bg-gray-50/50">
+                    <h4 className="text-sm font-bold text-gray-700 border-b border-gray-200 pb-2">Website SMTP Setup</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <label className="block text-xs font-bold text-gray-500 mb-1">SMTP Host</label>
+                        <input
+                          type="text"
+                          required={!useCompanySmtp}
+                          value={smtpConfig.host}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
+                          placeholder="smtp.gmail.com"
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:border-[#f99d1c] focus:ring-1 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Port</label>
+                        <input
+                          type="text"
+                          required={!useCompanySmtp}
+                          value={smtpConfig.port}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, port: e.target.value })}
+                          placeholder="587"
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:border-[#f99d1c] focus:ring-1 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Security</label>
+                        <select
+                          value={smtpConfig.secure ? "true" : "false"}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, secure: e.target.value === "true" })}
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:border-[#f99d1c] focus:ring-1 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm"
+                        >
+                          <option value="false">TLS (Port 587)</option>
+                          <option value="true">SSL (Port 465)</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Username / Email</label>
+                        <input
+                          type="email"
+                          required={!useCompanySmtp}
+                          value={smtpConfig.user}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value })}
+                          placeholder="you@example.com"
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:border-[#f99d1c] focus:ring-1 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-bold text-gray-500 mb-1">App Password</label>
+                        <input
+                          type="password"
+                          required={!useCompanySmtp}
+                          value={smtpConfig.pass}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, pass: e.target.value })}
+                          placeholder="••••••••"
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:border-[#f99d1c] focus:ring-1 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="pt-2 flex gap-3">
                   <button
                     type="button"

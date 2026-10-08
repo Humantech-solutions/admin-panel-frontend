@@ -225,7 +225,7 @@ export default function RegisterPage() {
               <div className="mt-8 text-center">
                 <p className="text-gray-500 font-medium text-sm">
                   Already have an account?{" "}
-                  <Link href="/admin/login" className="text-[#f99d1c] font-bold hover:underline">
+                  <Link href="/login" className="text-[#f99d1c] font-bold hover:underline">
                     Sign In
                   </Link>
                 </p>
@@ -295,7 +295,7 @@ export default function RegisterPage() {
                 Registration and Two-Factor Authentication setup completed successfully. Your account is now fully secured.
               </p>
               <button
-                onClick={() => router.push("/admin/login")}
+                onClick={() => router.push("/login")}
                 className="w-full bg-[#11253e] hover:bg-[#030213] text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-xl shadow-[#11253e]/20 group"
               >
                 Proceed to Login
