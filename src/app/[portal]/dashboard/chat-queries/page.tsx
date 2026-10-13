@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { MessageCircle, User, Globe, Search, Calendar, Clock, X, Phone, Mail,
   Eye,
 } from "lucide-react";
@@ -15,7 +16,11 @@ interface ChatQuery {
   submittedAt: string;
 }
 
-export default function ChatQueriesPage() {
+function ChatQueriesContent() {
+  const searchParams = useSearchParams();
+  const company = searchParams.get("company");
+  const website = searchParams.get("website");
+
   const [queries, setQueries] = useState<ChatQuery[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,12 +30,17 @@ export default function ChatQueriesPage() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch(`${API_BASE_URL}/api/chat/all`, {
+      const params = new URLSearchParams();
+      if (company && company !== "all") params.append("company", company);
+      if (website && website !== "all") params.append("website", website);
+      const queryStr = params.toString() ? `?${params.toString()}` : "";
+
+      const response = await fetch(`${API_BASE_URL}/api/chat/all${queryStr}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
       if (data.success) {
-        setQueries(data.queries);
+        setQueries(data.queries || []);
       }
     } catch (error) {
       console.error("Error fetching queries:", error);
@@ -41,7 +51,7 @@ export default function ChatQueriesPage() {
 
   useEffect(() => {
     fetchQueries();
-  }, []);
+  }, [company, website]);
 
   const filteredQueries = queries.filter((item) =>
     item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -190,5 +200,14 @@ export default function ChatQueriesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function ChatQueriesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Chat Queries...</div>}>
+      <ChatQueriesContent />
+    </Suspense>
   );
 }

@@ -18,17 +18,30 @@ import {
   Loader2,
   Globe,
   Settings,
+  LayoutDashboard,
 } from "lucide-react";
 import { useCompanies } from "@/lib/useCompanies";
 import { useAuth } from "@/context/AuthContext";
 
-const getCompanyNavItems = (company: string, role?: string) => { const items = []; if (role === 'company_admin' || role === 'superadmin') { items.push({ label: "Websites", href: `/admin/dashboard/websites?company=${company}`, icon: <Globe size={20} /> }); items.push({ label: "Global Settings", href: `/admin/dashboard/settings?company=${company}`, icon: <Settings size={20} /> }); } return items; };
+const getCompanyNavItems = (company: string, role?: string) => {
+  const items = [];
+  if (role === 'company_admin' || role === 'superadmin') {
+    items.push({ label: "Websites", href: `/admin/dashboard?company=${company}`, icon: <Globe size={20} /> });
+    items.push({ label: "Global Settings", href: `/admin/dashboard/settings?company=${company}`, icon: <Settings size={20} /> });
+  }
+  return items;
+};
 
 
 
 
 
 const getWebsiteNavItems = (company: string, website: string) => [
+  {
+    label: "Dashboard",
+    href: `/admin/dashboard?company=${company}&website=${website}`,
+    icon: <LayoutDashboard size={20} />,
+  },
   {
     label: "Contact Form",
     href: `/admin/dashboard/contact-form?company=${company}&website=${website}`,
@@ -87,7 +100,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
   const currentCompanySlug = searchParams.get("company") || (user as any)?.companySlug || companies[0]?.slug || "";
   const currentWebsite = searchParams.get("website");
 
-  const showLogsView = searchParams.get("logs") === "true" || pathname.includes("/contact-form") || pathname.includes("/event-form") || pathname.includes("/career") || pathname.includes("/chat") || pathname.includes("/sales-mails") || pathname.includes("/document-requests") || pathname.includes("/subscriptions");
+  const showLogsView = Boolean(currentWebsite);
 
   const currentCompany = companies.find((c) => c.slug === currentCompanySlug) ?? companies[0];
 
@@ -99,7 +112,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
 
   const navItems = isSuperAdmin
     ? getSuperAdminNavItems(user?.role)
-    : (currentWebsite && showLogsView)
+    : currentWebsite
       ? getWebsiteNavItems(currentCompanySlug, currentWebsite)
       : getCompanyNavItems(currentCompanySlug, user?.role);
 
@@ -152,49 +165,55 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
       {/* Websites list block (Hidden for Superadmin Product Owner) */}
       {(isOpen || mobile) && !isSuperAdmin && (
         <div className="px-3 pt-4 pb-2">
-          {currentWebsite && showLogsView ? (() => {
+          {currentWebsite ? (() => {
             const activeSite = ((currentCompany as any)?.websites || []).find((s: any) => s._id === currentWebsite || s.slug === currentWebsite || s.id === currentWebsite);
             const activeSiteName = activeSite?.name || "Website Logs";
             return (
               <div>
-                <p className="text-white/30 text-[10px] font-semibold tracking-[0.15em] uppercase mb-2 px-2">
-                  Website Logs
-                </p>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f99d1c]/10 border border-[#f99d1c]/20 text-[#f99d1c] mb-2">
-                  <Globe size={14} />
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <p className="text-white/30 text-[10px] font-semibold tracking-[0.15em] uppercase">
+                    Active Website
+                  </p>
+                  <Link
+                    href={`/admin/dashboard?company=${currentCompanySlug}`}
+                    className="text-[11px] font-semibold text-white/60 hover:text-[#f99d1c] flex items-center gap-0.5 transition-colors group"
+                    title="Back to all websites"
+                  >
+                    <ChevronLeft size={12} className="text-[#f99d1c] group-hover:-translate-x-0.5 transition-transform" />
+                    <span>All Websites</span>
+                  </Link>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f99d1c]/10 border border-[#f99d1c]/20 text-[#f99d1c]">
+                  <Globe size={14} className="shrink-0" />
                   <span className="text-xs font-bold truncate">{activeSiteName}</span>
                 </div>
-                <Link
-                  href={`/admin/dashboard?company=${currentCompanySlug}`}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:bg-white/10 hover:text-white transition-all"
-                >
-                  <ChevronLeft size={14} />
-                  Back to Overview
-                </Link>
               </div>
             );
           })() : (
             <div>
-              <p className="text-white/30 text-[10px] font-semibold tracking-[0.15em] uppercase mb-2 px-2">
-                Websites
-              </p>
+              <div className="flex items-center justify-between mb-2 px-2">
+                <p className="text-white/30 text-[10px] font-semibold tracking-[0.15em] uppercase">
+                  Websites
+                </p>
+              </div>
+
               <div className="space-y-1">
                 {((currentCompany as unknown as { websites?: Array<{ slug: string; name: string }> })?.websites || []).length === 0 ? (
                   <p className="text-white/40 text-xs px-2 py-1 italic">No websites configured</p>
                 ) : (
-                  ((currentCompany as unknown as { websites?: Array<{ slug: string; name: string }> })?.websites || []).map((site) => (
+                  ((currentCompany as unknown as { websites?: Array<{ slug: string; name: string; _id?: string }> })?.websites || []).map((site) => (
                     <Link
                       key={site.slug}
                       href={`/admin/dashboard?company=${currentCompanySlug}&website=${site.slug}`}
                       scroll={false}
                       onClick={mobile ? onMobileClose : undefined}
                       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                        currentWebsite === site.slug
+                        currentWebsite === site.slug || currentWebsite === site._id
                           ? "bg-[#f99d1c] text-white shadow-md shadow-[#f99d1c]/30 font-bold"
                           : "text-white/60 hover:bg-white/10 hover:text-white"
                       }`}
                     >
-                      <Globe size={15} className={currentWebsite === site.slug ? "text-white" : "text-white/40"} />
+                      <Globe size={15} className={currentWebsite === site.slug || currentWebsite === site._id ? "text-white" : "text-white/40"} />
                       <span className="truncate">{site.name}</span>
                     </Link>
                   ))

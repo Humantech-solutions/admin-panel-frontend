@@ -34,7 +34,8 @@ interface CareerMail {
 
 function CareerMailsDashboardContent() {
   const searchParams = useSearchParams();
-  const projectFilter = searchParams.get('project') || 'nabhira';
+  const companyFilter = searchParams.get('company');
+  const websiteFilter = searchParams.get('website') || searchParams.get('project');
 
   const [inquiries, setInquiries] = useState<CareerMail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +47,11 @@ function CareerMailsDashboardContent() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const url = `${API_BASE_URL}/api/career/all?project=${projectFilter}`;
+      const params = new URLSearchParams();
+      if (companyFilter && companyFilter !== 'all') params.append('company', companyFilter);
+      if (websiteFilter && websiteFilter !== 'all') params.append('website', websiteFilter);
+      const queryStr = params.toString() ? `?${params.toString()}` : '';
+      const url = `${API_BASE_URL}/api/career/all${queryStr}`;
       const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`
@@ -54,7 +59,7 @@ function CareerMailsDashboardContent() {
       });
       const data = await response.json();
       if (data.success) {
-        setInquiries(data.applications);
+        setInquiries(data.applications || []);
       }
     } catch (error) {
       console.error("Error fetching career mails:", error);
@@ -65,7 +70,7 @@ function CareerMailsDashboardContent() {
 
   useEffect(() => {
     fetchInquiries();
-  }, [projectFilter]);
+  }, [companyFilter, websiteFilter]);
 
   const filteredInquiries = inquiries.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -79,7 +84,7 @@ function CareerMailsDashboardContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#11253e]">
-            {projectFilter.charAt(0).toUpperCase() + projectFilter.slice(1)} - Career Mails
+            {(websiteFilter || companyFilter || 'All').charAt(0).toUpperCase() + (websiteFilter || companyFilter || 'All').slice(1)} - Career Mails
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Tracking {filteredInquiries.length} interactions from the careers page.

@@ -25,6 +25,7 @@ export interface Website {
   _id: string;
   companyId: string;
   name: string;
+  title?: string;
   url: string;
   crmType: string;
   crmConfig: any;
@@ -72,6 +73,8 @@ export default function WebsitesClient() {
   const [form, setForm] = useState<WebsiteForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [urlError, setUrlError] = useState("");
 
   /* Delete confirm */
   const [deleteTarget, setDeleteTarget] = useState<Website | null>(null);
@@ -150,15 +153,44 @@ export default function WebsitesClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
+    setNameError("");
+    setUrlError("");
 
-    if (!form.name.trim()) { setFormError("Website name is required."); return; }
-    if (!form.url.trim()) { setFormError("Website URL is required."); return; }
+    if (!form.name.trim()) { setNameError("Website name is required."); return; }
+    if (!form.url.trim()) { setUrlError("Website URL is required."); return; }
+
+    let hasClientError = false;
+
+    // Check duplicate website name
+    const duplicateName = websites.find(
+      (w) => w._id !== editTarget?._id && w.name && w.name.trim().toLowerCase() === form.name.trim().toLowerCase()
+    );
+    if (duplicateName) {
+      setNameError("Website name exists");
+      hasClientError = true;
+    }
+
+    // Check duplicate website URL
+    const getCanonicalUrl = (raw: string) =>
+      (raw || "").trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+    const incomingCanonical = getCanonicalUrl(form.url);
+
+    const duplicateUrl = websites.find(
+      (w) => w._id !== editTarget?._id && w.url && getCanonicalUrl(w.url) === incomingCanonical
+    );
+    if (duplicateUrl) {
+      setUrlError("Website URL exists");
+      hasClientError = true;
+    }
+
+    if (hasClientError) return;
 
     setSaving(true);
     try {
       const payload = {
-        name: form.name,
-        url: form.url,
+        name: form.name.trim(),
+        title: form.name.trim(),
+        url: form.url.trim(),
         companyId: company?._id || companyParam,
         crmType: form.crmType,
         crmConfig: {
@@ -182,13 +214,19 @@ export default function WebsitesClient() {
         });
       }
       
-      if (res.ok) {
-        const data = await res.json();
-        if (!data.success) { setFormError(data.message ?? "Something went wrong."); return; }
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success) {
         await fetchData();
         closeDrawer();
       } else {
-        setFormError("Failed to save website.");
+        if (data?.field === "name" || data?.message === "Website name exists") {
+          setNameError("Website name exists");
+        } else if (data?.field === "url" || data?.message === "Website URL exists") {
+          setUrlError("Website URL exists");
+        } else {
+          setFormError(data?.message || "Failed to save website.");
+        }
       }
     } catch {
       setFormError("Network error. Please try again.");
@@ -360,11 +398,21 @@ export default function WebsitesClient() {
                   <input
                     type="text"
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, name: e.target.value });
+                      setNameError("");
+                    }}
                     placeholder="e.g. Acme Main Store"
                     required
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-[#f99d1c]"
+                    className={`w-full px-4 py-3 bg-gray-50 border ${
+                      nameError ? "border-red-500 focus:border-red-500" : "border-gray-200 focus:border-[#f99d1c]"
+                    } rounded-xl text-sm font-semibold focus:outline-none`}
                   />
+                  {nameError && (
+                    <p className="text-red-500 text-xs font-semibold mt-1.5">
+                      {nameError}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -374,11 +422,21 @@ export default function WebsitesClient() {
                   <input
                     type="url"
                     value={form.url}
-                    onChange={(e) => setForm({ ...form, url: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, url: e.target.value });
+                      setUrlError("");
+                    }}
                     placeholder="https://acme.com"
                     required
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-[#f99d1c]"
+                    className={`w-full px-4 py-3 bg-gray-50 border ${
+                      urlError ? "border-red-500 focus:border-red-500" : "border-gray-200 focus:border-[#f99d1c]"
+                    } rounded-xl text-sm font-semibold focus:outline-none`}
                   />
+                  {urlError && (
+                    <p className="text-red-500 text-xs font-semibold mt-1.5">
+                      {urlError}
+                    </p>
+                  )}
                 </div>
 
                 {formError && (

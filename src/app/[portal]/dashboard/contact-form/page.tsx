@@ -270,8 +270,8 @@ function ContactDashboardContent() {
                     </td>
                     <td className="px-6 py-4">
                         <span className="text-xs font-semibold text-gray-500">
-                          {item.submittedAt || item.createdAt
-                            ? new Date(item.submittedAt || item.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' })
+                          {item.submittedAt || (item as any).createdAt
+                            ? new Date(item.submittedAt || (item as any).createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' })
                             : "-"}
                         </span>
                       </td>

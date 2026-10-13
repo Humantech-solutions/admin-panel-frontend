@@ -38,6 +38,7 @@ export default function AdminLoginPage() {
   const [setupCareersEmail, setSetupCareersEmail] = useState("");
   const [setupSalesEmail, setSetupSalesEmail] = useState("");
   const [setupContactEmail, setSetupContactEmail] = useState("");
+  const [setupSiteTitle, setSetupSiteTitle] = useState("");
   const [setupSiteUrl, setSetupSiteUrl] = useState("");
   const [enableSmtp, setEnableSmtp] = useState(false);
   const [smtpHost, setSmtpHost] = useState("");
@@ -363,6 +364,8 @@ const handleNextSlide = () => {
           careersNotificationEmail: effectiveCareersEmail,
           salesNotificationEmail: effectiveSalesEmail,
           contactNotificationEmail: effectiveContactEmail,
+          title: setupSiteTitle.trim(),
+          siteTitle: setupSiteTitle.trim(),
           siteUrl: setupSiteUrl.trim(),
           adminSmtp: adminSmtpPayload
         }),
@@ -985,6 +988,19 @@ const handleNextSlide = () => {
               {/* SLIDE 2: Website & SMTP Setup */}
               {setupSlide === 2 && (
                 <form onSubmit={handleSetupCompanySubmit} className="space-y-4 animate-in fade-in duration-200">
+                  <div>
+                    <label className="block text-[#11253e] text-xs font-bold mb-1.5 ml-1">
+                      Website Title <span className="text-gray-400 font-normal text-[11px]">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={setupSiteTitle}
+                      onChange={(e) => setSetupSiteTitle(e.target.value)}
+                      placeholder={setupCompanyName.trim() ? `${setupCompanyName.trim()} Website` : "e.g., Corporate Website"}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-3 focus:ring-[#f99d1c]/10 transition-all text-xs sm:text-sm"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-[#11253e] text-xs font-bold mb-1.5 ml-1">
                       Primary Website URL <span className="text-gray-400 font-normal text-[11px]">(Optional)</span>

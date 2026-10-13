@@ -36,7 +36,7 @@ export default function OrganizationCompaniesPage() {
 
   // Role check: Only Super Admin / Product Owner can access
   useEffect(() => {
-    if (user && !["superadmin", "super_editor", "super_viewer"].includes(user.role) && !loading) {
+    if (user && !["superadmin", "super_editor", "super_viewer"].includes(user.role || "") && !loading) {
       const targetSlug = (user as any).companySlug || companies[0]?.slug;
       if (targetSlug) {
         router.replace(`/admin/dashboard?company=${targetSlug}`);
