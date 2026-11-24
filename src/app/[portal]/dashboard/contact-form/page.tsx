@@ -295,6 +295,17 @@ function ContactDashboardContent() {
                       </div>
                       <p className="text-gray-500 text-sm font-medium">No contact inquiries found</p>
                       <p className="text-gray-400 text-xs mt-1">Inquiries submitted via website contact forms will appear here.</p>
+                      {categoryFilter?.toLowerCase() === "career" && (
+                        <div className="mt-4 p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl text-xs text-blue-800 max-w-md">
+                          Looking for candidate resumes &amp; job applications?{" "}
+                          <a
+                            href={`/admin/dashboard/career?company=${selectedCompany}&website=${selectedWebsite}`}
+                            className="font-bold underline text-[#11253e] hover:text-[#f99d1c] transition-colors"
+                          >
+                            Open Career Applications →
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>

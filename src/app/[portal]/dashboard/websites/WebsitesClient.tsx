@@ -15,17 +15,20 @@ import {
   CheckCircle2,
   XCircle,
   ExternalLink,
+  Code2,
 } from "lucide-react";
 import { API_BASE_URL } from "@/config/api";
 import { Company, useCompanies } from "@/lib/useCompanies";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import EmbedCodeModal from "@/components/EmbedCodeModal";
 
 export interface Website {
   _id: string;
   companyId: string;
   name: string;
   title?: string;
+  slug?: string;
   url: string;
   crmType: string;
   crmConfig: any;
@@ -79,6 +82,10 @@ export default function WebsitesClient() {
   /* Delete confirm */
   const [deleteTarget, setDeleteTarget] = useState<Website | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [embedModalWebsite, setEmbedModalWebsite] = useState<{
+    name: string;
+    slug: string;
+  } | null>(null);
 
   /* Fetch Data */
   const fetchData = async () => {
@@ -219,6 +226,12 @@ export default function WebsitesClient() {
       if (res.ok && data?.success) {
         await fetchData();
         closeDrawer();
+        if (!editTarget) {
+          setEmbedModalWebsite({
+            name: data.website?.name || form.name,
+            slug: data.embed?.websiteSlug || data.website?.slug || form.name,
+          });
+        }
       } else {
         if (data?.field === "name" || data?.message === "Website name exists") {
           setNameError("Website name exists");
@@ -356,6 +369,16 @@ export default function WebsitesClient() {
                 </Link>
                 {!isSuperAdmin && (
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setEmbedModalWebsite({
+                        name: site.name,
+                        slug: site.slug || site.name,
+                      })}
+                      className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-orange-50 rounded-lg transition-colors"
+                      title="View Integration Embed Code"
+                    >
+                      <Code2 size={15} />
+                    </button>
                     <button
                       onClick={() => openEdit(site)}
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -497,6 +520,13 @@ export default function WebsitesClient() {
           </div>
         </div>
       )}
+
+      <EmbedCodeModal
+        isOpen={Boolean(embedModalWebsite)}
+        onClose={() => setEmbedModalWebsite(null)}
+        websiteName={embedModalWebsite?.name}
+        websiteSlug={embedModalWebsite?.slug || ""}
+      />
     </div>
   );
 }

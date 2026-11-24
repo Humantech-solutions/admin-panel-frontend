@@ -7,6 +7,7 @@ import adminBg from "@/../public/assets/admin_login_bg.png";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { API_BASE_URL } from "@/config/api";
+import EmbedCodeModal from "@/components/EmbedCodeModal";
 
 export default function AdminLoginPage() {
   const { login, verifyMfa } = useAuth();
@@ -48,6 +49,20 @@ export default function AdminLoginPage() {
   const [smtpSecure, setSmtpSecure] = useState(false);
 
   const [pendingUser, setPendingUser] = useState<any>(null);
+  const [onboardingEmbedModal, setOnboardingEmbedModal] = useState<{
+    isOpen: boolean;
+    websiteName: string;
+    websiteSlug: string;
+    user: any;
+  } | null>(null);
+
+  const handleOnboardingModalClose = () => {
+    const targetUser = onboardingEmbedModal?.user || pendingUser;
+    setOnboardingEmbedModal(null);
+    if (targetUser) {
+      redirectUser(targetUser);
+    }
+  };
 
   const redirectUser = (u: any) => {
     if (["superadmin", "super_editor", "super_viewer"].includes(u?.role)) {
@@ -376,7 +391,24 @@ const handleNextSlide = () => {
           sessionStorage.setItem("adminToken", data.token);
         }
         sessionStorage.setItem("adminUser", JSON.stringify(data.user));
-        redirectUser(data.user);
+
+        const resolvedSlug =
+          data.embed?.websiteSlug ||
+          data.website?.slug ||
+          data.company?.slug ||
+          data.user?.companySlug ||
+          "my-website";
+        const resolvedName =
+          data.website?.name ||
+          data.company?.name ||
+          setupCompanyName.trim();
+
+        setOnboardingEmbedModal({
+          isOpen: true,
+          websiteName: resolvedName,
+          websiteSlug: resolvedSlug,
+          user: data.user,
+        });
       } else {
         setError(data.message || "Failed to setup company.");
       }
@@ -1130,6 +1162,15 @@ const handleNextSlide = () => {
           </div>
         </div>
       </div>
+          {onboardingEmbedModal && (
+        <EmbedCodeModal
+          isOpen={onboardingEmbedModal.isOpen}
+          onClose={handleOnboardingModalClose}
+          websiteName={onboardingEmbedModal.websiteName}
+          websiteSlug={onboardingEmbedModal.websiteSlug}
+          isOrgCreation={true}
+        />
+      )}
     </div>
   );
 }
