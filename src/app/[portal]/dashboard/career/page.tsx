@@ -28,7 +28,8 @@ interface CareerApplication {
 
 function CareerDashboardContent() {
   const searchParams = useSearchParams();
-  const websiteFilter = searchParams.get('website') || searchParams.get('company');
+  const companyFilter = searchParams.get('company');
+  const websiteFilter = searchParams.get('website');
 
   const [applications, setApplications] = useState<CareerApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +39,11 @@ function CareerDashboardContent() {
   const fetchApplications = async () => {
     try {
       const token = sessionStorage.getItem("adminToken");
-      const url = `${API_BASE_URL}/api/career/all?project=${websiteFilter}`;
+      const params = new URLSearchParams();
+      if (companyFilter && companyFilter !== 'all') params.append('company', companyFilter);
+      if (websiteFilter && websiteFilter !== 'all') params.append('website', websiteFilter);
+      const queryStr = params.toString() ? `?${params.toString()}` : '';
+      const url = `${API_BASE_URL}/api/career/all${queryStr}`;
       const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`
@@ -46,7 +51,7 @@ function CareerDashboardContent() {
       });
       const data = await response.json();
       if (data.success) {
-        setApplications(data.applications);
+        setApplications(data.applications || []);
       }
     } catch (error) {
       console.error("Error fetching applications:", error);
@@ -57,7 +62,7 @@ function CareerDashboardContent() {
 
   useEffect(() => {
     fetchApplications();
-  }, [websiteFilter]);
+  }, [companyFilter, websiteFilter]);
 
   const filteredApps = applications.filter(app =>
     app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

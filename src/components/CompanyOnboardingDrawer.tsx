@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { API_BASE_URL } from "@/config/api";
 import { Company, SmtpConfig } from "@/lib/useCompanies";
+import EmbedCodeModal from "@/components/EmbedCodeModal";
 
 function slugify(str: string) {
   return str
@@ -118,6 +119,11 @@ export default function CompanyOnboardingDrawer({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [showAdvancedSmtp, setShowAdvancedSmtp] = useState(false);
+  const [embedModalData, setEmbedModalData] = useState<{
+    isOpen: boolean;
+    websiteName: string;
+    websiteSlug: string;
+  } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -263,8 +269,19 @@ export default function CompanyOnboardingDrawer({
         throw new Error(data.message || "Failed to save company profile.");
       }
 
-      onSuccess();
-      onClose();
+      if (!editTarget) {
+        const slug = data.embed?.websiteSlug || data.website?.slug || data.company?.slug || form.slug;
+        const name = data.website?.name || data.company?.name || form.name;
+        setEmbedModalData({
+          isOpen: true,
+          websiteName: name,
+          websiteSlug: slug,
+        });
+        onSuccess();
+      } else {
+        onSuccess();
+        onClose();
+      }
     } catch (err: any) {
       setFormError(err.message || "An unexpected error occurred.");
     } finally {
@@ -279,7 +296,8 @@ export default function CompanyOnboardingDrawer({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-[#11253e]/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <>
+      <div className="fixed inset-0 z-50 overflow-hidden bg-[#11253e]/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
         <div className="w-screen max-w-xl bg-white shadow-2xl flex flex-col justify-between">
           {/* DRAWER HEADER */}
@@ -683,6 +701,18 @@ export default function CompanyOnboardingDrawer({
         </div>
       </div>
     </div>
+
+      <EmbedCodeModal
+        isOpen={Boolean(embedModalData?.isOpen)}
+        onClose={() => {
+          setEmbedModalData(null);
+          onClose();
+        }}
+        websiteName={embedModalData?.websiteName}
+        websiteSlug={embedModalData?.websiteSlug || ""}
+        isOrgCreation={true}
+      />
+    </>
   );
 }
 

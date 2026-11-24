@@ -6,6 +6,7 @@ import { useCompanies } from "@/lib/useCompanies";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/config/api";
 import Link from "next/link";
+import InquiryAnalytics from "./components/InquiryAnalytics";
 import {
   Globe,
   Plus,
@@ -21,6 +22,13 @@ import {
   X,
   ChevronLeft,
   Briefcase,
+  ArrowUpRight,
+  Activity,
+  CheckCircle2,
+  Radio,
+  Layers,
+  ShieldCheck,
+  Inbox,
 } from "lucide-react";
 
 function DashboardContent() {
@@ -30,8 +38,6 @@ function DashboardContent() {
   const companySlug = searchParams.get("company") || (user as any)?.companySlug || companies[0]?.slug || "";
   const website = searchParams.get("website");
 
-  const showLogs = searchParams.get("logs") === "true";
-
   const currentCompany = companies.find((c) => c.slug === companySlug) || companies[0];
   const companyWebsites = (currentCompany as any)?.websites || [];
 
@@ -40,10 +46,43 @@ function DashboardContent() {
   const [newWebsite, setNewWebsite] = useState({ name: "", slug: "", url: "", description: "" });
   const [useCompanySmtp, setUseCompanySmtp] = useState(true);
   const [smtpConfig, setSmtpConfig] = useState({ host: "", port: "587", user: "", pass: "", secure: false });
+  const [modalError, setModalError] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [urlError, setUrlError] = useState("");
+
+  const getCanonicalUrl = (raw: string) =>
+    (raw || "").trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
 
   const handleAddWebsite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWebsite.name || !newWebsite.url || !currentCompany) return;
+    setNameError("");
+    setUrlError("");
+    setModalError("");
+
+    if (!newWebsite.name.trim() || !newWebsite.url.trim() || !currentCompany) return;
+
+    let hasClientError = false;
+
+    // Check duplicate website name for this company
+    const duplicateName = companyWebsites.find(
+      (w: any) => w.name && w.name.trim().toLowerCase() === newWebsite.name.trim().toLowerCase()
+    );
+    if (duplicateName) {
+      setNameError("Website name exists");
+      hasClientError = true;
+    }
+
+    // Check duplicate website URL for this company
+    const incomingCanonical = getCanonicalUrl(newWebsite.url);
+    const duplicateUrl = companyWebsites.find(
+      (w: any) => w.url && getCanonicalUrl(w.url) === incomingCanonical
+    );
+    if (duplicateUrl) {
+      setUrlError("Website URL exists");
+      hasClientError = true;
+    }
+
+    if (hasClientError) return;
 
     try {
       const token = sessionStorage.getItem("adminToken");
@@ -54,9 +93,10 @@ function DashboardContent() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: newWebsite.name,
+          name: newWebsite.name.trim(),
+          title: newWebsite.name.trim(),
           slug: newWebsite.slug || newWebsite.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-          url: newWebsite.url,
+          url: newWebsite.url.trim(),
           companyId: currentCompany._id,
           isActive: true,
           ...(!useCompanySmtp ? { smtpConfig } : {})
@@ -67,13 +107,22 @@ function DashboardContent() {
       if (data.success) {
         setShowAddWebsite(false);
         setNewWebsite({ name: "", slug: "", url: "", description: "" });
+        setNameError("");
+        setUrlError("");
+        setModalError("");
         await refetch();
       } else {
-        alert(data.message || "Failed to add website");
+        if (data.field === "name" || data.message === "Website name exists") {
+          setNameError("Website name exists");
+        } else if (data.field === "url" || data.message === "Website URL exists") {
+          setUrlError("Website URL exists");
+        } else {
+          setModalError(data.message || "Failed to add website");
+        }
       }
     } catch (err) {
       console.error("Error adding website:", err);
-      alert("Error adding website");
+      setModalError("Network error. Please try again.");
     }
   };
 
@@ -82,13 +131,7 @@ function DashboardContent() {
     url: "#",
   };
 
-  const logCards = [
-    { label: "Contact Form", desc: "View & manage contact enquiries", icon: <Mail size={24} className="text-blue-500" />, href: `/admin/dashboard/contact-form?company=${companySlug}&website=${website}`, color: "from-blue-500/10 to-blue-600/5", border: "border-blue-200" },
-    { label: "Event Form", desc: "Add and track upcoming events", icon: <Calendar size={24} className="text-purple-500" />, href: `/admin/dashboard/event-form?company=${companySlug}&website=${website}`, color: "from-purple-500/10 to-purple-600/5", border: "border-purple-200" },
-    { label: "Career Applications", desc: "Manage job openings & candidate applications", icon: <Briefcase size={24} className="text-emerald-500" />, href: `/admin/dashboard/career?company=${companySlug}&website=${website}`, color: "from-emerald-500/10 to-emerald-600/5", border: "border-emerald-200" },
-    { label: "Career Mails", desc: "Review incoming job applications", icon: <FileText size={24} className="text-orange-500" />, href: `/admin/dashboard/career-mails?company=${companySlug}&website=${website}`, color: "from-orange-500/10 to-orange-600/5", border: "border-orange-200" },
-    { label: "Chatbot", desc: "Set up & monitor chatbot responses", icon: <MessageSquare size={24} className="text-pink-500" />, href: `/admin/dashboard/chat-queries?company=${companySlug}&website=${website}`, color: "from-pink-500/10 to-pink-600/5", border: "border-pink-200" },
-  ];
+
 
   /* ─────────────────────────────────────────────────────────────────────────── */
   /*  VIEW 1: NO WEBSITE SELECTED (COMPANY LEVEL)                                */
@@ -118,7 +161,7 @@ function DashboardContent() {
 
             <button
               onClick={() => {
-                setShowAddWebsite(true);
+                setShowAddWebsite(true); setModalError(""); setNameError(""); setUrlError("");
                 setUseCompanySmtp(companyWebsites.length > 0);
               }}
               className="inline-flex items-center gap-2 bg-[#f99d1c] hover:bg-[#e88f10] text-white text-sm font-semibold px-6 py-3.5 rounded-2xl shadow-lg shadow-[#f99d1c]/30 transition-all shrink-0 active:scale-95"
@@ -151,7 +194,7 @@ function DashboardContent() {
                         <Globe size={20} />
                       </div>
                       <div>
-                        <h3 className="font-bold text-[#11253e] text-base">{site.name}</h3>
+                        <h3 className="font-bold text-[#11253e] text-base">{site.title || site.name}</h3>
                         <span className="text-xs text-gray-400 font-mono">{site.url}</span>
                       </div>
                     </div>
@@ -173,7 +216,7 @@ function DashboardContent() {
                     View Site
                   </a>
                   <Link
-                    href={`/admin/dashboard?company=${companySlug}&website=${site._id}`}
+                    href={`/admin/dashboard?company=${companySlug}&website=${site._id || site.slug || site.id}`}
                     className="flex-1 py-2.5 px-4 bg-[#11253e] hover:bg-[#1a3d66] text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-colors shadow-sm"
                   >
                     Dashboard
@@ -231,16 +274,31 @@ function DashboardContent() {
                 </button>
               </div>
               <form onSubmit={handleAddWebsite} className="p-6 space-y-4">
+                {modalError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-semibold leading-relaxed">
+                    {modalError}
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-bold text-gray-500 mb-1">Website Name</label>
                   <input
                     type="text"
                     required
                     value={newWebsite.name}
-                    onChange={(e) => setNewWebsite({ ...newWebsite, name: e.target.value })}
+                    onChange={(e) => {
+                      setNewWebsite({ ...newWebsite, name: e.target.value });
+                      setNameError("");
+                    }}
                     placeholder="e.g., Hulabs Portal"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm"
+                    className={`w-full px-4 py-3 bg-gray-50 border ${
+                      nameError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-gray-200 focus:border-[#f99d1c] focus:ring-[#f99d1c]/20"
+                    } rounded-xl focus:ring-2 outline-none transition-all text-sm`}
                   />
+                  {nameError && (
+                    <p className="text-red-500 text-xs font-semibold mt-1.5 flex items-center gap-1">
+                      {nameError}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-500 mb-1">Live URL</label>
@@ -248,10 +306,20 @@ function DashboardContent() {
                     type="url"
                     required
                     value={newWebsite.url}
-                    onChange={(e) => setNewWebsite({ ...newWebsite, url: e.target.value })}
+                    onChange={(e) => {
+                      setNewWebsite({ ...newWebsite, url: e.target.value });
+                      setUrlError("");
+                    }}
                     placeholder="https://example.com"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm"
+                    className={`w-full px-4 py-3 bg-gray-50 border ${
+                      urlError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-gray-200 focus:border-[#f99d1c] focus:ring-[#f99d1c]/20"
+                    } rounded-xl focus:ring-2 outline-none transition-all text-sm`}
                   />
+                  {urlError && (
+                    <p className="text-red-500 text-xs font-semibold mt-1.5 flex items-center gap-1">
+                      {urlError}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-500 mb-1">Description</label>
@@ -366,133 +434,117 @@ function DashboardContent() {
   }
 
   /* ─────────────────────────────────────────────────────────────────────────── */
-  /*  VIEW 2: WEBSITE ANALYTICS OVERVIEW (website parameter present, logs false) */
-  /* ─────────────────────────────────────────────────────────────────────────── */
-  if (!showLogs) {
-    return (
-      <div className="space-y-8">
-        {/* Website Overview Banner */}
-        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#11253e] via-[#162e4c] to-[#1a3d66] p-8 sm:p-12 text-white shadow-2xl">
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-3">
-              <span className="px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 text-[#f99d1c] font-bold text-xs uppercase tracking-widest rounded-xl">
-                {currentCompany?.name ?? "Hutech Solutions"}
-              </span>
-              <span className="px-3 py-1 bg-green-500/20 text-green-300 font-bold text-xs uppercase tracking-widest rounded-xl border border-green-500/30">
-                Active
-              </span>
-            </div>
-
-            <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-3">
-              {selectedSite.name}
-            </h1>
-
-            <p className="text-white/80 text-base sm:text-lg max-w-2xl mb-8 leading-relaxed font-light">
-              {selectedSite.description} Control all aspects of your digital ecosystem from this unified dashboard.
-            </p>
-
-            <div className="flex flex-wrap gap-4">
-              <a
-                href={selectedSite.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3.5 bg-white text-[#11253e] rounded-2xl font-bold hover:bg-white/90 transition-all shadow-xl text-sm flex items-center gap-2"
-              >
-                <ExternalLink size={16} />
-                View Project Site
-              </a>
-              <Link
-                href={`/admin/dashboard?company=${companySlug}&website=${website}&logs=true`}
-                className="px-6 py-3.5 bg-black/20 text-white hover:bg-black/30 rounded-2xl font-bold transition-all border border-white/20 flex items-center gap-2 text-sm"
-              >
-                <History size={16} />
-                Admin Logs
-              </Link>
-            </div>
-          </div>
-
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl pointer-events-none" />
-        </div>
-
-        {/* Analytics & Metrics Grid */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-[#11253e]">Website Performance & System Health</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {[
-              { title: "Active Users", value: "1,284", change: "+12%", color: "text-green-500", bg: "bg-green-50 border-green-100" },
-              { title: "System Health", value: "99.9%", change: "Stable", color: "text-blue-500", bg: "bg-blue-50 border-blue-100" },
-              { title: "Pending Updates", value: "3", change: "None", color: "text-orange-500", bg: "bg-orange-50 border-orange-100" },
-            ].map((stat) => (
-              <div key={stat.title} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{stat.title}</p>
-                  <p className="text-3xl font-extrabold text-[#11253e] mt-1">{stat.value}</p>
-                </div>
-                <span className={`px-3 py-1 rounded-xl text-xs font-bold ${stat.bg} ${stat.color}`}>
-                  {stat.change}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Action button to open logs */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-3xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div>
-            <h3 className="font-bold text-[#11253e] text-lg">Detailed Admin Logs & Enquiries</h3>
-            <p className="text-gray-500 text-sm mt-1">Access form submissions, job applications, chatbot queries, and event registrations.</p>
-          </div>
-          <Link
-            href={`/admin/dashboard?company=${companySlug}&website=${website}&logs=true`}
-            className="px-6 py-3.5 bg-[#11253e] hover:bg-[#1a3d66] text-white font-bold rounded-2xl shadow-lg transition-all text-sm shrink-0 flex items-center gap-2"
-          >
-            Open Admin Logs
-            <ChevronRight size={16} />
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  /* ─────────────────────────────────────────────────────────────────────────── */
-  /*  VIEW 3: WEBSITE DETAILED ADMIN LOGS (website parameter present, logs=true) */
+  /*  VIEW 2: WEBSITE DETAILED LEAD & ADMIN LOGS (website parameter present)    */
   /* ─────────────────────────────────────────────────────────────────────────── */
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              href={`/admin/dashboard?company=${companySlug}&website=${website}`}
-              className="text-xs font-semibold text-gray-400 hover:text-[#f99d1c] transition-colors flex items-center gap-1"
-            >
-              <ChevronLeft size={16} />
-              Back to {selectedSite.name} Analytics
-            </Link>
+    <div className="space-y-8">
+      {/* Premium Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#11253e] via-[#162e4c] to-[#1e3a5f] p-8 sm:p-10 text-white shadow-2xl border border-white/10">
+        {/* Decorative backdrop glow elements */}
+        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#f99d1c]/15 blur-3xl pointer-events-none" />
+        <div className="absolute right-1/3 -bottom-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.04] pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col gap-6">
+          {/* Top telemetry & status row */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-md bg-[#f99d1c]/20 text-[#f99d1c] border border-[#f99d1c]/30 text-[11px] font-bold uppercase tracking-wider">
+                Telemetry & Lead Logs
+              </span>
+              <span className="text-white/40 text-xs">•</span>
+              <span className="text-white/60 text-xs font-medium flex items-center gap-1">
+                <Activity size={12} className="text-[#f99d1c]" /> 6 Integrated Channels
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Live Log Sync
+              </span>
+
+              {selectedSite.url && selectedSite.url !== "#" && (
+                <a
+                  href={selectedSite.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors border border-white/10"
+                >
+                  <Globe size={13} />
+                  <span>Visit Site</span>
+                  <ArrowUpRight size={13} />
+                </a>
+              )}
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-[#11253e]">{selectedSite.name} — Detailed Admin Logs</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Select a module below or use the sidebar menu to inspect logs.</p>
+
+          {/* Title & Description */}
+          <div className="max-w-3xl">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">
+              {selectedSite.name} — Detailed Lead Logs
+            </h1>
+            <p className="text-white/75 text-sm sm:text-base leading-relaxed">
+              Real-time audit console monitoring visitor interactions, customer inquiries, candidate CV submissions, event RSVPs, and conversational leads.
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {logCards.map((card) => (
-          <a
-            key={card.href}
-            href={card.href}
-            className="block bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-gray-50 rounded-xl group-hover:bg-[#f99d1c]/10 transition-colors">{card.icon}</div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-[#11253e] font-bold text-base group-hover:text-[#f99d1c] transition-colors truncate">{card.label}</h3>
-                <p className="text-gray-500 text-xs mt-1 line-clamp-2">{card.desc}</p>
-              </div>
-            </div>
-          </a>
-        ))}
+      {/* KPI Stats Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+            <Layers size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Channels</p>
+            <p className="text-lg sm:text-xl font-bold text-[#11253e] truncate">6 Modules</p>
+            <p className="text-[11px] text-emerald-600 font-medium">All active & tracking</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+            <CheckCircle2 size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Ingestion Pipeline</p>
+            <p className="text-lg sm:text-xl font-bold text-[#11253e] truncate">100% Operational</p>
+            <p className="text-[11px] text-emerald-600 font-medium">Zero pending backlog</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+          <div className="w-12 h-12 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0">
+            <Radio size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Notification Dispatch</p>
+            <p className="text-lg sm:text-xl font-bold text-[#11253e] truncate">Instant Alerts</p>
+            <p className="text-[11px] text-blue-600 font-medium">Dynamic department SMTP</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+            <ShieldCheck size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Audit Security</p>
+            <p className="text-lg sm:text-xl font-bold text-[#11253e] truncate">Protected Data</p>
+            <p className="text-[11px] text-gray-500 font-medium">Role-based access</p>
+          </div>
+        </div>
       </div>
+
+      {/* Inquiry Analytics: Pie Chart (Which Tab) & Trend Graph (Raised vs Dropped) */}
+      <InquiryAnalytics
+        companySlug={companySlug}
+        websiteId={website || ""}
+        websiteName={selectedSite.name}
+      />
+
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { API_BASE_URL } from "@/config/api";
 import {
   Mail,
@@ -26,7 +27,11 @@ interface SalesMail {
   requestedAt: string;
 }
 
-export default function SalesMailsPage() {
+function SalesMailsContent() {
+  const searchParams = useSearchParams();
+  const company = searchParams.get("company");
+  const website = searchParams.get("website");
+
   const [mails, setMails] = useState<SalesMail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,13 +41,18 @@ export default function SalesMailsPage() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch(`${API_BASE_URL}/api/sales/all`, {
+      const params = new URLSearchParams();
+      if (company && company !== "all") params.append("company", company);
+      if (website && website !== "all") params.append("website", website);
+      const queryStr = params.toString() ? `?${params.toString()}` : "";
+
+      const response = await fetch(`${API_BASE_URL}/api/sales/all${queryStr}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await response.json();
       if (data.success) {
-        setMails(data.mails);
+        setMails(data.mails || []);
       }
     } catch (error) {
       console.error("Error fetching sales mails:", error);
@@ -53,7 +63,7 @@ export default function SalesMailsPage() {
 
   useEffect(() => {
     fetchMails();
-  }, []);
+  }, [company, website]);
 
   const filteredMails = mails.filter(
     (item) =>
@@ -283,5 +293,14 @@ export default function SalesMailsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function SalesMailsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Sales Mails...</div>}>
+      <SalesMailsContent />
+    </Suspense>
   );
 }

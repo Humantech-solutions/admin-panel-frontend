@@ -14,11 +14,13 @@ import {
   AlertTriangle,
   Shield,
   HardDrive,
+  Code2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/config/api";
 import { useCompanies, Company } from "@/lib/useCompanies";
 import CompanyOnboardingDrawer from "@/components/CompanyOnboardingDrawer";
+import EmbedCodeModal from "@/components/EmbedCodeModal";
 
 function authHeaders() {
   const token = sessionStorage.getItem("adminToken");
@@ -36,7 +38,7 @@ export default function OrganizationCompaniesPage() {
 
   // Role check: Only Super Admin / Product Owner can access
   useEffect(() => {
-    if (user && !["superadmin", "super_editor", "super_viewer"].includes(user.role) && !loading) {
+    if (user && !["superadmin", "super_editor", "super_viewer"].includes(user.role || "") && !loading) {
       const targetSlug = (user as any).companySlug || companies[0]?.slug;
       if (targetSlug) {
         router.replace(`/admin/dashboard?company=${targetSlug}`);
@@ -52,6 +54,7 @@ export default function OrganizationCompaniesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [embedCompany, setEmbedCompany] = useState<Company | null>(null);
 
   /* ── Dynamic KPI Calculations ── */
   const totalWebsites = companies.reduce((acc, comp) => {
@@ -380,6 +383,13 @@ export default function OrganizationCompaniesPage() {
 
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setEmbedCompany(company)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-[#f99d1c] hover:bg-orange-50 transition-all"
+                          title="View Embed Code"
+                        >
+                          <Code2 size={16} />
+                        </button>
                         {(isAdmin || isEditor) && (
                           <button
                             onClick={() => openEdit(company)}
@@ -450,6 +460,13 @@ export default function OrganizationCompaniesPage() {
           </div>
         </div>
       )}
+      <EmbedCodeModal
+        isOpen={Boolean(embedCompany)}
+        onClose={() => setEmbedCompany(null)}
+        websiteName={embedCompany?.name}
+        websiteSlug={embedCompany?.slug || ""}
+        isOrgCreation={true}
+      />
     </div>
   );
 }

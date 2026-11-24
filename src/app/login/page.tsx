@@ -7,6 +7,7 @@ import adminBg from "@/../public/assets/admin_login_bg.png";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { API_BASE_URL } from "@/config/api";
+import EmbedCodeModal from "@/components/EmbedCodeModal";
 
 export default function AdminLoginPage() {
   const { login, verifyMfa } = useAuth();
@@ -33,6 +34,12 @@ export default function AdminLoginPage() {
   const [setupCompanyName, setSetupCompanyName] = useState("");
   const [setupAdminEmail, setSetupAdminEmail] = useState("");
   const [setupFromEmailName, setSetupFromEmailName] = useState("");
+  const [isSenderNameCustomized, setIsSenderNameCustomized] = useState(false);
+  const [showCustomizeNotifications, setShowCustomizeNotifications] = useState(false);
+  const [setupCareersEmail, setSetupCareersEmail] = useState("");
+  const [setupSalesEmail, setSetupSalesEmail] = useState("");
+  const [setupContactEmail, setSetupContactEmail] = useState("");
+  const [setupSiteTitle, setSetupSiteTitle] = useState("");
   const [setupSiteUrl, setSetupSiteUrl] = useState("");
   const [enableSmtp, setEnableSmtp] = useState(false);
   const [smtpHost, setSmtpHost] = useState("");
@@ -42,6 +49,20 @@ export default function AdminLoginPage() {
   const [smtpSecure, setSmtpSecure] = useState(false);
 
   const [pendingUser, setPendingUser] = useState<any>(null);
+  const [onboardingEmbedModal, setOnboardingEmbedModal] = useState<{
+    isOpen: boolean;
+    websiteName: string;
+    websiteSlug: string;
+    user: any;
+  } | null>(null);
+
+  const handleOnboardingModalClose = () => {
+    const targetUser = onboardingEmbedModal?.user || pendingUser;
+    setOnboardingEmbedModal(null);
+    if (targetUser) {
+      redirectUser(targetUser);
+    }
+  };
 
   const redirectUser = (u: any) => {
     if (["superadmin", "super_editor", "super_viewer"].includes(u?.role)) {
@@ -65,7 +86,8 @@ export default function AdminLoginPage() {
       setSetupSlide(1);
       setPendingUser(u);
       if (u?.email) setSetupAdminEmail(u.email);
-      if (u?.name) setSetupFromEmailName(u.name);
+      setSetupFromEmailName("");
+      setIsSenderNameCustomized(false);
     } else {
       redirectUser(u);
     }
@@ -265,9 +287,20 @@ const handleNextSlide = () => {
       setError("Company name is required.");
       return;
     }
-    if (!setupAdminEmail.trim()) {
-      setError("Notification email is required.");
+    if (!setupFromEmailName.trim()) {
+      setError("From Sender Name is required.");
       return;
+    }
+    if (showCustomizeNotifications) {
+      if (!setupCareersEmail.trim() && !setupSalesEmail.trim() && !setupContactEmail.trim()) {
+        setError("Please enter at least one department notification email, or click 'Hide Customization'.");
+        return;
+      }
+    } else {
+      if (!setupAdminEmail.trim()) {
+        setError("Notification email is required.");
+        return;
+      }
     }
     setSetupSlide(2);
   };
@@ -280,14 +313,55 @@ const handleNextSlide = () => {
       setError("Company name is required.");
       return;
     }
+    if (!setupFromEmailName.trim()) {
+      setSetupSlide(1);
+      setError("From Sender Name is required.");
+      return;
+    }
+
+    if (showCustomizeNotifications) {
+      if (!setupCareersEmail.trim() && !setupSalesEmail.trim() && !setupContactEmail.trim()) {
+        setSetupSlide(1);
+        setError("Please enter at least one department notification email, or click 'Hide Customization'.");
+        return;
+      }
+    } else {
+      if (!setupAdminEmail.trim()) {
+        setSetupSlide(1);
+        setError("Notification email is required.");
+        return;
+      }
+    }
+
+    if (enableSmtp && (!smtpUser?.trim() || !smtpPass?.trim())) {
+      setError("Please provide both SMTP Username/Email and Password, or uncheck custom SMTP.");
+      return;
+    }
 
     const adminSmtpPayload = enableSmtp && (smtpUser || smtpHost) ? {
-      host: smtpHost,
-      port: smtpPort,
-      user: smtpUser,
-      pass: smtpPass,
+      host: smtpHost?.trim() || undefined,
+      port: smtpPort ? Number(smtpPort) : 587,
+      user: smtpUser?.trim() || undefined,
+      pass: smtpPass || undefined,
       secure: smtpSecure,
     } : null;
+
+    // Resolve primary notification email and department emails
+    const effectiveAdminEmail = showCustomizeNotifications
+      ? (setupContactEmail.trim() || setupCareersEmail.trim() || setupSalesEmail.trim() || setupAdminEmail.trim())
+      : setupAdminEmail.trim();
+
+    const effectiveCareersEmail = showCustomizeNotifications
+      ? (setupCareersEmail.trim() || effectiveAdminEmail)
+      : effectiveAdminEmail;
+
+    const effectiveSalesEmail = showCustomizeNotifications
+      ? (setupSalesEmail.trim() || effectiveAdminEmail)
+      : effectiveAdminEmail;
+
+    const effectiveContactEmail = showCustomizeNotifications
+      ? (setupContactEmail.trim() || effectiveAdminEmail)
+      : effectiveAdminEmail;
 
     setLoading(true);
     try {
@@ -299,20 +373,42 @@ const handleNextSlide = () => {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          companyName: setupCompanyName,
-          adminEmail: setupAdminEmail,
-          fromEmailName: setupFromEmailName,
-          siteUrl: setupSiteUrl,
+          companyName: setupCompanyName.trim(),
+          adminEmail: effectiveAdminEmail,
+          fromEmailName: setupFromEmailName.trim(),
+          careersNotificationEmail: effectiveCareersEmail,
+          salesNotificationEmail: effectiveSalesEmail,
+          contactNotificationEmail: effectiveContactEmail,
+          title: setupSiteTitle.trim(),
+          siteTitle: setupSiteTitle.trim(),
+          siteUrl: setupSiteUrl.trim(),
           adminSmtp: adminSmtpPayload
         }),
       });
-              const data = await res.json();
-        if (data.success) {
-          if (data.token) {
-            sessionStorage.setItem("adminToken", data.token);
-          }
-          sessionStorage.setItem("adminUser", JSON.stringify(data.user));
-          redirectUser(data.user);
+      const data = await res.json();
+      if (data.success) {
+        if (data.token) {
+          sessionStorage.setItem("adminToken", data.token);
+        }
+        sessionStorage.setItem("adminUser", JSON.stringify(data.user));
+
+        const resolvedSlug =
+          data.embed?.websiteSlug ||
+          data.website?.slug ||
+          data.company?.slug ||
+          data.user?.companySlug ||
+          "my-website";
+        const resolvedName =
+          data.website?.name ||
+          data.company?.name ||
+          setupCompanyName.trim();
+
+        setOnboardingEmbedModal({
+          isOpen: true,
+          websiteName: resolvedName,
+          websiteSlug: resolvedSlug,
+          user: data.user,
+        });
       } else {
         setError(data.message || "Failed to setup company.");
       }
@@ -775,36 +871,130 @@ const handleNextSlide = () => {
                     <input
                       type="text"
                       value={setupCompanyName}
-                      onChange={(e) => setSetupCompanyName(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSetupCompanyName(val);
+                        // Autofill "From Sender Name" as per company name unless user explicitly edited it differently
+                        if (!isSenderNameCustomized || setupFromEmailName === setupCompanyName || !setupFromEmailName) {
+                          setSetupFromEmailName(val);
+                        }
+                      }}
                       placeholder="Acme Corporation"
                       required
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-3 focus:ring-[#f99d1c]/10 transition-all text-xs sm:text-sm"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[#11253e] text-xs font-bold mb-1.5 ml-1">
-                      Notification Email * <span className="text-gray-400 font-normal text-[11px]">(Alerts & Leads Inbox)</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={setupAdminEmail}
-                      onChange={(e) => setSetupAdminEmail(e.target.value)}
-                      placeholder="admin@acme.com"
-                      required
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-3 focus:ring-[#f99d1c]/10 transition-all text-xs sm:text-sm"
-                    />
-                  </div>
+                  {!showCustomizeNotifications ? (
+                    <div>
+                      <label className="block text-[#11253e] text-xs font-bold mb-1.5 ml-1">
+                        Notification Email * <span className="text-gray-400 font-normal text-[11px]">(Alerts & Leads Inbox)</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={setupAdminEmail}
+                        onChange={(e) => setSetupAdminEmail(e.target.value)}
+                        placeholder="admin@acme.com"
+                        required
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-3 focus:ring-[#f99d1c]/10 transition-all text-xs sm:text-sm"
+                      />
+
+                      {/* Customize button placed bottom right side of the field */}
+                      <div className="flex justify-end mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomizeNotifications(true)}
+                          className="text-[11px] font-bold text-[#f99d1c] hover:text-[#e88f10] hover:underline flex items-center gap-1 transition-colors px-1 py-0.5"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          Customize Department Emails ▼
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Department Specific Notification Emails (replacing single field when customized) */
+                    <div className="space-y-2 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between ml-1">
+                        <label className="text-[#11253e] text-xs font-bold">
+                          Department Notification Emails *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomizeNotifications(false)}
+                          className="text-[11px] font-bold text-[#f99d1c] hover:text-[#e88f10] hover:underline flex items-center gap-1 transition-colors px-1 py-0.5"
+                        >
+                          Hide Customization ▲
+                        </button>
+                      </div>
+
+                      <div className="p-3.5 bg-gray-50 border border-gray-200/90 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between pb-1 border-b border-gray-200">
+                          <span className="text-[11px] font-extrabold text-[#11253e] uppercase tracking-wide">
+                            Department Alerts
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            Custom inboxes per department
+                          </span>
+                        </div>
+
+                        <div>
+                          <label className="block text-[#11253e] text-[11px] font-bold mb-1">
+                            Careers Notification Email <span className="text-gray-400 font-normal">(Job Applications)</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={setupCareersEmail}
+                            onChange={(e) => setSetupCareersEmail(e.target.value)}
+                            placeholder="career@gmail.com"
+                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-[#11253e] font-medium text-xs focus:outline-none focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/10"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[#11253e] text-[11px] font-bold mb-1">
+                            Sales Notification Email <span className="text-gray-400 font-normal">(Sales & Quotations)</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={setupSalesEmail}
+                            onChange={(e) => setSetupSalesEmail(e.target.value)}
+                            placeholder="sales@gmail.com"
+                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-[#11253e] font-medium text-xs focus:outline-none focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/10"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[#11253e] text-[11px] font-bold mb-1">
+                            Contact Notification Email <span className="text-gray-400 font-normal">(General Inquiries)</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={setupContactEmail}
+                            onChange={(e) => setSetupContactEmail(e.target.value)}
+                            placeholder="contact@gmail.com"
+                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-[#11253e] font-medium text-xs focus:outline-none focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/10"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-[#11253e] text-xs font-bold mb-1.5 ml-1">
-                      From Sender Name <span className="text-gray-400 font-normal text-[11px]">(Optional)</span>
+                      From Sender Name * <span className="text-gray-400 font-normal text-[11px]">(Auto-filled from company name)</span>
                     </label>
                     <input
                       type="text"
                       value={setupFromEmailName}
-                      onChange={(e) => setSetupFromEmailName(e.target.value)}
-                      placeholder="Acme Notifications"
+                      onChange={(e) => {
+                        setSetupFromEmailName(e.target.value);
+                        setIsSenderNameCustomized(true);
+                      }}
+                      placeholder="Acme Corporation"
+                      required
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-3 focus:ring-[#f99d1c]/10 transition-all text-xs sm:text-sm"
                     />
                   </div>
@@ -830,6 +1020,19 @@ const handleNextSlide = () => {
               {/* SLIDE 2: Website & SMTP Setup */}
               {setupSlide === 2 && (
                 <form onSubmit={handleSetupCompanySubmit} className="space-y-4 animate-in fade-in duration-200">
+                  <div>
+                    <label className="block text-[#11253e] text-xs font-bold mb-1.5 ml-1">
+                      Website Title <span className="text-gray-400 font-normal text-[11px]">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={setupSiteTitle}
+                      onChange={(e) => setSetupSiteTitle(e.target.value)}
+                      placeholder={setupCompanyName.trim() ? `${setupCompanyName.trim()} Website` : "e.g., Corporate Website"}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#11253e] font-medium focus:outline-none focus:border-[#f99d1c] focus:bg-white focus:ring-3 focus:ring-[#f99d1c]/10 transition-all text-xs sm:text-sm"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-[#11253e] text-xs font-bold mb-1.5 ml-1">
                       Primary Website URL <span className="text-gray-400 font-normal text-[11px]">(Optional)</span>
@@ -959,6 +1162,15 @@ const handleNextSlide = () => {
           </div>
         </div>
       </div>
+          {onboardingEmbedModal && (
+        <EmbedCodeModal
+          isOpen={onboardingEmbedModal.isOpen}
+          onClose={handleOnboardingModalClose}
+          websiteName={onboardingEmbedModal.websiteName}
+          websiteSlug={onboardingEmbedModal.websiteSlug}
+          isOrgCreation={true}
+        />
+      )}
     </div>
   );
 }

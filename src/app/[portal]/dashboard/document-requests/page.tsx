@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, Loader2, FileText, Calendar, Mail, User, Phone, Download, Eye, X, MessageSquare, Clock, Globe, ExternalLink, CheckCircle2 } from "lucide-react";
 import { API_BASE_URL } from "@/config/api";
 
-export default function DocumentRequestsPage() {
+function DocumentRequestsContent() {
+  const searchParams = useSearchParams();
+  const company = searchParams.get("company");
+  const website = searchParams.get("website");
+
   const [requests, setRequests] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -14,14 +19,19 @@ export default function DocumentRequestsPage() {
     setIsLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
-      const response = await fetch(`${API_BASE_URL}/api/documents/requests`, {
+      const params = new URLSearchParams();
+      if (company && company !== "all") params.append("company", company);
+      if (website && website !== "all") params.append("website", website);
+      const queryStr = params.toString() ? `?${params.toString()}` : "";
+
+      const response = await fetch(`${API_BASE_URL}/api/documents/requests${queryStr}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       const data = await response.json();
       if (data.success) {
-        setRequests(data.requests);
+        setRequests(data.requests || []);
       }
     } catch (error) {
       console.error("Error fetching document requests:", error);
@@ -32,7 +42,7 @@ export default function DocumentRequestsPage() {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [company, website]);
 
   const filteredRequests = requests.filter(
     (item) =>
@@ -272,5 +282,14 @@ export default function DocumentRequestsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function DocumentRequestsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Document Requests...</div>}>
+      <DocumentRequestsContent />
+    </Suspense>
   );
 }
