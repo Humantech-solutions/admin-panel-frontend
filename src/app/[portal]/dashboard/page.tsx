@@ -247,7 +247,7 @@ function DashboardContent() {
           </Link>
 
           <Link
-            href={`/admin/dashboard/companies/${currentCompany?._id ?? "default"}/websites`}
+            href={`/admin/dashboard/websites?company=${companySlug}`}
             className="bg-white border border-gray-100 rounded-3xl p-6 flex items-center gap-4 hover:shadow-md transition-all group"
           >
             <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">

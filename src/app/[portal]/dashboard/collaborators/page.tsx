@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   UserPlus,
   Users,
@@ -14,6 +15,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   ChevronDown,
+  KeyRound,
 } from "lucide-react";
 import { API_BASE_URL } from "@/config/api";
 import { useAuth } from "@/context/AuthContext";
@@ -36,6 +38,11 @@ function authHeaders() {
 }
 
 function EmployeesContent() {
+  const searchParams = useSearchParams();
+  const urlCompany = searchParams.get("company");
+  const urlProject = searchParams.get("project");
+  const targetCompany = urlCompany || urlProject;
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -56,28 +63,13 @@ function EmployeesContent() {
   const isAdmin = user?.role === "superadmin" || user?.role === "company_admin";
   const isEditor = user?.role === "super_editor" || user?.role === "company_editor";
 
-  const ROLES = isSuper
+  // Context-aware role options
+  const isTargetCompanyUser = editTarget
+    ? editTarget.role.startsWith("company_")
+    : !isSuper || Boolean(targetCompany);
+
+  const ROLES = isTargetCompanyUser
     ? [
-        {
-          value: "superadmin",
-          label: "Admin",
-          desc: "Product Owner",
-          color: "bg-purple-50 text-purple-700 border-purple-200",
-        },
-        {
-          value: "super_editor",
-          label: "Editor",
-          desc: "Can manage forms and content",
-          color: "bg-blue-50 text-blue-700 border-blue-200",
-        },
-        {
-          value: "super_viewer",
-          label: "Viewer",
-          desc: "Read-only access",
-          color: "bg-gray-50 text-gray-700 border-gray-200",
-        },
-      ]
-    : [
         {
           value: "company_admin",
           label: "Admin",
@@ -96,9 +88,29 @@ function EmployeesContent() {
           desc: "Read-only access",
           color: "bg-gray-50 text-gray-700 border-gray-200",
         },
+      ]
+    : [
+        {
+          value: "superadmin",
+          label: "Admin",
+          desc: "Platform Owner",
+          color: "bg-purple-50 text-purple-700 border-purple-200",
+        },
+        {
+          value: "super_editor",
+          label: "Editor",
+          desc: "Can manage forms and content",
+          color: "bg-blue-50 text-blue-700 border-blue-200",
+        },
+        {
+          value: "super_viewer",
+          label: "Viewer",
+          desc: "Read-only access",
+          color: "bg-gray-50 text-gray-700 border-gray-200",
+        },
       ];
 
-  const defaultRole = isSuper ? "super_viewer" : "company_viewer";
+  const defaultRole = isTargetCompanyUser ? "company_viewer" : "super_viewer";
 
   const [form, setForm] = useState({ name: "", email: "", role: defaultRole });
   const [formError, setFormError] = useState("");
@@ -106,7 +118,10 @@ function EmployeesContent() {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/users`, {
+      const url = targetCompany
+        ? `${API_BASE_URL}/api/users?companyId=${targetCompany}`
+        : `${API_BASE_URL}/api/users`;
+      const res = await fetch(url, {
         headers: authHeaders(),
       });
       if (res.ok) {
@@ -137,7 +152,7 @@ function EmployeesContent() {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [targetCompany]);
 
   const openAdd = () => {
     setEditTarget(null);
@@ -205,10 +220,19 @@ function EmployeesContent() {
         ? `${API_BASE_URL}/api/users/${editTarget.id}`
         : `${API_BASE_URL}/api/users`;
       const method = editTarget ? "PUT" : "POST";
+      const payload: any = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        role: form.role,
+      };
+      if (!editTarget && targetCompany) {
+        payload.companyId = targetCompany;
+      }
+
       const res = await fetch(endpoint, {
         method,
         headers: authHeaders(),
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -260,7 +284,7 @@ function EmployeesContent() {
   };
 
   const roleBadge = (role: string) =>
-    ROLES.find((r) => r.value === role)?.color ?? "bg-gray-50 text-gray-700";
+    ROLES.find((r) => r.value === role)?.color ?? "bg-gray-50 text-gray-700 border border-gray-200";
 
   return (
     <div className="space-y-6">
@@ -351,13 +375,19 @@ function EmployeesContent() {
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-24">
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-32">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {employees.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                    Loading users...
+                  </td>
+                </tr>
+              ) : employees.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
@@ -369,8 +399,7 @@ function EmployeesContent() {
                           No employees yet
                         </p>
                         <p className="text-gray-400 text-xs mt-1">
-                          Click "Onboard Employee" to invite your first team
-                          member.
+                          Click "Add a User" to invite your first team member.
                         </p>
                       </div>
                     </div>
@@ -404,7 +433,13 @@ function EmployeesContent() {
                       <span
                         className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold border ${roleBadge(emp.role)}`}
                       >
-                        {emp.role.includes("admin") ? "Admin" : emp.role.includes("editor") ? "Editor" : emp.role.includes("viewer") ? "Viewer" : emp.role}
+                        {emp.role.includes("admin")
+                          ? "Admin"
+                          : emp.role.includes("editor")
+                          ? "Editor"
+                          : emp.role.includes("viewer")
+                          ? "Viewer"
+                          : emp.role}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -417,12 +452,25 @@ function EmployeesContent() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {isAdmin && (
+                          <button
+                            onClick={() => {
+                              setPasswordTarget(emp);
+                              setNewPassword("");
+                              setFormError("");
+                            }}
+                            className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
+                            title="Reset Password"
+                          >
+                            <KeyRound size={15} />
+                          </button>
+                        )}
                         {isAdmin && (
                           <button
                             onClick={() => openEdit(emp)}
                             className="p-2 text-gray-400 hover:text-[#11253e] hover:bg-gray-100 rounded-lg transition-all"
-                            title="Edit"
+                            title="Edit User"
                           >
                             <Pencil size={15} />
                           </button>
@@ -431,7 +479,7 @@ function EmployeesContent() {
                           <button
                             onClick={() => setDeleteTarget(emp)}
                             className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                            title="Remove"
+                            title="Remove User"
                           >
                             <Trash2 size={15} />
                           </button>
@@ -487,7 +535,7 @@ function EmployeesContent() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g., Aria Singh"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm font-medium text-[#11253e]"
                 />
               </div>
 
@@ -501,7 +549,7 @@ function EmployeesContent() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="e.g., alex@company.com"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#f99d1c] focus:ring-2 focus:ring-[#f99d1c]/20 outline-none transition-all text-sm font-medium text-[#11253e]"
                 />
               </div>
 
