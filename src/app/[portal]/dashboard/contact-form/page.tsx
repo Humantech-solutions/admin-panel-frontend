@@ -19,6 +19,9 @@ import {
   Phone,
   Building2,
   Filter,
+  FileText,
+  Download,
+  Linkedin,
 } from "lucide-react";
 
 interface ContactInquiry {
@@ -36,6 +39,8 @@ interface ContactInquiry {
   companyId?: { _id: string; name: string; slug: string };
   websiteId?: { _id: string; name: string; slug: string; url?: string };
   project?: string;
+  resume?: string;
+  linkedin?: string;
 }
 
 function ContactDashboardContent() {
@@ -73,6 +78,27 @@ function ContactDashboardContent() {
     (w: any) => w.slug === urlWebsite || w._id === urlWebsite
   );
   const websiteDisplayName = matchedWebsiteDoc?.name || urlWebsite;
+
+  // Helper to extract clean resume URL from inquiry object or message
+  const getResumeUrl = (inquiry: ContactInquiry | null | undefined): string | null => {
+    if (!inquiry) return null;
+    let rawUrl: string | null = null;
+    if (inquiry.resume && typeof inquiry.resume === "string" && inquiry.resume.trim()) {
+      rawUrl = inquiry.resume.trim();
+    } else if (inquiry.message && typeof inquiry.message === "string" && inquiry.message.includes("/uploads/resumes/")) {
+      const match = inquiry.message.match(/\/uploads\/resumes\/[^\s"']+/);
+      if (match) {
+        rawUrl = match[0];
+      }
+    }
+    if (!rawUrl) return null;
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+      return rawUrl;
+    }
+    const base = API_BASE_URL.replace(/\/+$/, "");
+    const cleanPath = rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+    return `${base}${cleanPath}`;
+  };
 
   const fetchInquiries = async () => {
     setLoading(true);
@@ -178,7 +204,7 @@ function ContactDashboardContent() {
             </div>
           )}
 
-          {/* Website Filter Dropdown (Only shown when browsing company level with multiple websites and NOT already inside a specific website panel) */}
+          {/* Website Filter Dropdown */}
           {!isWebsiteContext && selectedCompany !== "all" && activeCompanyWebsites.length > 1 && (
             <div className="relative flex items-center">
               <Globe size={15} className="absolute left-3 text-gray-400 pointer-events-none" />
@@ -218,7 +244,7 @@ function ContactDashboardContent() {
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Inquiry</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Source Context</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Source Context</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-24">Action</th>
@@ -227,7 +253,7 @@ function ContactDashboardContent() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
                     Loading inquiries...
                   </td>
                 </tr>
@@ -238,6 +264,14 @@ function ContactDashboardContent() {
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-[#11253e]">{item.name}</span>
                         <span className="text-[11px] text-gray-400 font-medium truncate max-w-[180px]">{item.subject}</span>
+                        <a
+                          href={`mailto:${item.email}`}
+                          className="text-[11px] text-gray-400 hover:text-[#f99d1c] hover:underline flex items-center gap-1 mt-0.5 truncate max-w-[180px] transition-colors"
+                          title={`Email ${item.email}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Mail size={10} className="shrink-0" /> {item.email}
+                        </a>
                       </div>
                     </td>
                     
@@ -269,26 +303,40 @@ function ContactDashboardContent() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                        <span className="text-xs font-semibold text-gray-500">
-                          {item.submittedAt || (item as any).createdAt
-                            ? new Date(item.submittedAt || (item as any).createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' })
-                            : "-"}
-                        </span>
-                      </td>
+                      <span className="text-xs font-semibold text-gray-500">
+                        {item.submittedAt || (item as any).createdAt
+                          ? new Date(item.submittedAt || (item as any).createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' })
+                          : "-"}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => setSelectedInquiry(item)}
-                        className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
-                        title="View Details"
-                      >
-                        <Eye size={18} className="text-[#f99d1c]" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        {getResumeUrl(item) && (
+                          <a
+                            href={getResumeUrl(item)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
+                            title="View / Download Resume"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <FileText size={18} className="text-[#f99d1c]" />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => setSelectedInquiry(item)}
+                          className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
+                          title="View Details"
+                        >
+                          <Eye size={18} className="text-[#11253e]" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
+                  <td colSpan={5} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mb-3">
                         <MessageSquare className="text-gray-300" size={24} />
@@ -344,39 +392,95 @@ function ContactDashboardContent() {
               <div className="md:col-span-5 space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0">
                       <User size={14} />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Full Name</p>
-                      <p className="text-[#11253e] font-bold text-sm">{selectedInquiry.name}</p>
+                      <p className="text-[#11253e] font-bold text-sm truncate">{selectedInquiry.name}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0">
                       <Mail size={14} />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Email Address</p>
-                      <p className="text-[#11253e] font-medium text-sm">{selectedInquiry.email}</p>
+                      <a
+                        href={`mailto:${selectedInquiry.email}`}
+                        className="text-[#11253e] hover:text-[#f99d1c] font-medium text-sm hover:underline break-all block transition-colors"
+                        title={`Email ${selectedInquiry.email}`}
+                      >
+                        {selectedInquiry.email}
+                      </a>
                     </div>
                   </div>
 
                   {selectedInquiry.phone && (
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
-                        <Phone size={14} />
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0">
+                        {selectedInquiry.phone.toLowerCase().includes("linkedin.com") ? (
+                          <Linkedin size={14} className="text-[#0a66c2]" />
+                        ) : (
+                          <Phone size={14} />
+                        )}
                       </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Phone Number</p>
-                        <p className="text-[#11253e] font-medium text-sm">{selectedInquiry.phone}</p>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
+                          {selectedInquiry.phone.toLowerCase().includes("linkedin.com")
+                            ? "LinkedIn Profile"
+                            : selectedInquiry.phone.startsWith("http")
+                            ? "Website / Profile"
+                            : "Phone Number"}
+                        </p>
+                        {selectedInquiry.phone.toLowerCase().includes("linkedin.com") || selectedInquiry.phone.startsWith("http") ? (
+                          <a
+                            href={selectedInquiry.phone.startsWith("http") ? selectedInquiry.phone : `https://${selectedInquiry.phone}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#0a66c2] hover:text-[#f99d1c] font-medium text-sm hover:underline flex items-center gap-1.5 break-all transition-colors"
+                            title="Open Profile"
+                          >
+                            <span className="truncate">Open LinkedIn Profile</span>
+                            <ExternalLink size={12} className="shrink-0" />
+                          </a>
+                        ) : (
+                          <a
+                            href={`tel:${selectedInquiry.phone.replace(/[^0-9+]/g, "")}`}
+                            className="text-[#11253e] hover:text-[#f99d1c] font-medium text-sm hover:underline transition-colors block"
+                            title={`Call ${selectedInquiry.phone}`}
+                          >
+                            {selectedInquiry.phone}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* LinkedIn if provided separately on inquiry */}
+                  {(selectedInquiry as any).linkedin && !selectedInquiry.phone?.toLowerCase().includes("linkedin.com") && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-[#0a66c2] shrink-0">
+                        <Linkedin size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">LinkedIn Profile</p>
+                        <a
+                          href={(selectedInquiry as any).linkedin.startsWith("http") ? (selectedInquiry as any).linkedin : `https://${(selectedInquiry as any).linkedin}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#0a66c2] hover:text-[#f99d1c] font-medium text-sm hover:underline flex items-center gap-1.5 break-all transition-colors"
+                        >
+                          <span className="truncate">Open LinkedIn Profile</span>
+                          <ExternalLink size={12} className="shrink-0" />
+                        </a>
                       </div>
                     </div>
                   )}
 
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0">
                       <Clock size={14} />
                     </div>
                     <div>
@@ -410,28 +514,28 @@ function ContactDashboardContent() {
 
                 {!isViewer && (
                   <div className="pt-4 border-t border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Action Status</p>
-                  <div className="flex gap-2">
-                    {["New", "Contacted", "Closed"].map((st) => (
-                      <button
-                        key={st}
-                        onClick={() => updateStatus(selectedInquiry._id, st)}
-                        className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all ${
-                          selectedInquiry.status === st
-                            ? "bg-[#11253e] text-white border-[#11253e]"
-                            : "bg-white text-gray-400 border-gray-100 hover:border-[#f99d1c] hover:text-[#f99d1c]"
-                        }`}
-                      >
-                        {st}
-                      </button>
-                    ))}
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Action Status</p>
+                    <div className="flex gap-2">
+                      {["New", "Contacted", "Closed"].map((st) => (
+                        <button
+                          key={st}
+                          onClick={() => updateStatus(selectedInquiry._id, st)}
+                          className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all ${
+                            selectedInquiry.status === st
+                              ? "bg-[#11253e] text-white border-[#11253e]"
+                              : "bg-white text-gray-400 border-gray-100 hover:border-[#f99d1c] hover:text-[#f99d1c]"
+                          }`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
                 )}
               </div>
 
-              {/* Right Column: Message Content */}
-              <div className="md:col-span-7 bg-[#11253e] text-white rounded-2xl p-8 relative overflow-hidden">
+              {/* Right Column: Message & Resume Content */}
+              <div className="md:col-span-7 bg-[#11253e] text-white rounded-2xl p-8 relative overflow-hidden flex flex-col justify-between">
                 <div className="absolute top-0 right-0 p-4 opacity-10">
                   <MessageSquare size={80} />
                 </div>
@@ -440,15 +544,64 @@ function ContactDashboardContent() {
                     <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-2">Subject</h4>
                     <p className="text-lg font-bold tracking-tight">{selectedInquiry.subject}</p>
                   </div>
+
                   <div>
-                    <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-4">Inquiry Message</h4>
-                    <p className="text-white/80 font-light leading-relaxed text-sm whitespace-pre-wrap italic">
-                      &ldquo;{selectedInquiry.message}&rdquo;
+                    <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-3">Inquiry Message</h4>
+                    <p className="text-white/80 font-light leading-relaxed text-sm whitespace-pre-wrap italic bg-white/5 p-4 rounded-xl border border-white/10">
+                      {(() => {
+                        const rawMsg = selectedInquiry.message || "";
+                        if (rawMsg.trim().startsWith("Resume: /uploads/") || rawMsg.trim().startsWith("/uploads/resumes/")) {
+                          return "Candidate submitted their application along with the attached resume.";
+                        }
+                        const cleanMsg = rawMsg.replace(/Resume:\s*\/uploads\/resumes\/[^\s"']+/gi, "").trim();
+                        return cleanMsg || "Candidate submitted their application along with the attached resume.";
+                      })()}
                     </p>
                   </div>
 
+                  {/* Attached Resume / CV Card */}
+                  {getResumeUrl(selectedInquiry) && (
+                    <div className="pt-2">
+                      <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-2.5">Candidate Resume / CV</h4>
+                      <div className="p-4 rounded-xl bg-white/10 border border-white/15 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-[#f99d1c] flex items-center justify-center text-[#11253e] shrink-0">
+                            <FileText size={20} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white">Attached Resume</p>
+                            <p className="text-[10px] text-white/60 font-mono truncate max-w-[160px]">
+                              {getResumeUrl(selectedInquiry)?.split("/").pop()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={getResumeUrl(selectedInquiry)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3.5 py-2 bg-[#f99d1c] hover:bg-[#e58b0f] text-[#11253e] font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+                            title="View Resume in Browser"
+                          >
+                            <Eye size={13} /> View <ExternalLink size={11} />
+                          </a>
+                          <a
+                            href={getResumeUrl(selectedInquiry)!}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white font-medium text-xs rounded-xl transition-all flex items-center gap-1.5 border border-white/20"
+                            title="Download Resume"
+                          >
+                            <Download size={13} /> Download
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedInquiry.status === "Closed" && (
-                    <div className="flex items-center gap-2 text-[#f99d1c] pt-4">
+                    <div className="flex items-center gap-2 text-[#f99d1c] pt-2">
                       <CheckCircle2 size={16} />
                       <span className="text-[10px] font-bold uppercase tracking-widest">Inquiry Handled</span>
                     </div>

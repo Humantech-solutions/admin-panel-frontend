@@ -110,8 +110,24 @@ function DocumentRequestsContent() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-[#11253e]">{item.name}</span>
-                        <span className="text-[11px] text-gray-400 font-medium truncate max-w-[180px]">{item.email}</span>
-                        {item.phone && <span className="text-[11px] text-gray-400 font-medium">{item.phone}</span>}
+                        <a
+                          href={`mailto:${item.email}`}
+                          className="text-[11px] text-gray-400 hover:text-[#f99d1c] hover:underline truncate max-w-[180px] transition-colors"
+                          title={`Email ${item.email}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {item.email}
+                        </a>
+                        {item.phone && (
+                          <a
+                            href={`tel:${item.phone.replace(/[^0-9+]/g, "")}`}
+                            className="text-[11px] text-gray-400 hover:text-[#f99d1c] hover:underline transition-colors"
+                            title={`Call ${item.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {item.phone}
+                          </a>
+                        )}
                       </div>
                     </td>
 
@@ -212,7 +228,13 @@ function DocumentRequestsContent() {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Email Address</p>
-                      <p className="text-[#11253e] font-medium text-sm">{selectedRequest.email}</p>
+                      <a
+                        href={`mailto:${selectedRequest.email}`}
+                        className="text-[#11253e] hover:text-[#f99d1c] hover:underline font-medium text-sm block break-all transition-colors"
+                        title={`Email ${selectedRequest.email}`}
+                      >
+                        {selectedRequest.email}
+                      </a>
                     </div>
                   </div>
 
@@ -223,7 +245,13 @@ function DocumentRequestsContent() {
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Phone Number</p>
-                        <p className="text-[#11253e] font-medium text-sm">{selectedRequest.phone}</p>
+                        <a
+                          href={`tel:${selectedRequest.phone.replace(/[^0-9+]/g, "")}`}
+                          className="text-[#11253e] hover:text-[#f99d1c] hover:underline font-medium text-sm block transition-colors"
+                          title={`Call ${selectedRequest.phone}`}
+                        >
+                          {selectedRequest.phone}
+                        </a>
                       </div>
                     </div>
                   )}
