@@ -163,7 +163,7 @@ function SalesMailsContent() {
                           <p className="font-bold text-[#11253e] text-sm">
                             {item.name}
                           </p>
-                          <p className="text-gray-400 text-xs">{item.email}</p>
+                          <a href={`mailto:${item.email}`} className="text-gray-400 hover:text-[#f99d1c] hover:underline text-xs transition-colors block" title={`Email ${item.email}`} onClick={(e) => e.stopPropagation()}>{item.email}</a>
                         </div>
                       </div>
                     </td>
@@ -243,9 +243,7 @@ function SalesMailsContent() {
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                     Email Address
                   </p>
-                  <p className="text-sm font-medium text-[#11253e]">
-                    {selectedMail.email}
-                  </p>
+                  <a href={`mailto:${selectedMail.email}`} className="text-sm font-medium text-[#11253e] hover:text-[#f99d1c] hover:underline transition-colors block break-all" title={`Email ${selectedMail.email}`}>{selectedMail.email}</a>
                 </div>
               </div>
 

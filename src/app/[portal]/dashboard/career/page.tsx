@@ -12,7 +12,8 @@ import {
   Search,
   Calendar,
   X,
-  FileText
+  FileText,
+  Download,
 } from "lucide-react";
 
 interface CareerApplication {
@@ -28,26 +29,36 @@ interface CareerApplication {
 
 function CareerDashboardContent() {
   const searchParams = useSearchParams();
-  const companyFilter = searchParams.get('company');
-  const websiteFilter = searchParams.get('website');
+  const companyFilter = searchParams.get("company");
+  const websiteFilter = searchParams.get("website");
 
   const [applications, setApplications] = useState<CareerApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedApp, setSelectedApp] = useState<CareerApplication | null>(null);
 
+  // Helper to resolve clean resume URL
+  const getResumeUrl = (resume?: string) => {
+    if (!resume || !resume.trim()) return null;
+    const clean = resume.trim();
+    if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
+    const base = API_BASE_URL.replace(/\/+$/, "");
+    const path = clean.startsWith("/") ? clean : `/${clean}`;
+    return `${base}${path}`;
+  };
+
   const fetchApplications = async () => {
     try {
       const token = sessionStorage.getItem("adminToken");
       const params = new URLSearchParams();
-      if (companyFilter && companyFilter !== 'all') params.append('company', companyFilter);
-      if (websiteFilter && websiteFilter !== 'all') params.append('website', websiteFilter);
-      const queryStr = params.toString() ? `?${params.toString()}` : '';
+      if (companyFilter && companyFilter !== "all") params.append("company", companyFilter);
+      if (websiteFilter && websiteFilter !== "all") params.append("website", websiteFilter);
+      const queryStr = params.toString() ? `?${params.toString()}` : "";
       const url = `${API_BASE_URL}/api/career/all${queryStr}`;
       const response = await fetch(url, {
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       const data = await response.json();
       if (data.success) {
@@ -64,10 +75,11 @@ function CareerDashboardContent() {
     fetchApplications();
   }, [companyFilter, websiteFilter]);
 
-  const filteredApps = applications.filter(app =>
-    app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.pageTitle.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredApps = applications.filter(
+    (app) =>
+      app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.pageTitle.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -114,15 +126,20 @@ function CareerDashboardContent() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-[#11253e]">{app.name}</span>
-                        <span className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                          <Mail size={12} /> {app.email}
-                        </span>
+                        <a
+                          href={`mailto:${app.email}`}
+                          className="text-xs text-gray-500 hover:text-[#f99d1c] hover:underline flex items-center gap-1 mt-0.5 transition-colors"
+                          title={`Email ${app.email}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Mail size={12} className="shrink-0" /> {app.email}
+                        </a>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm text-[#11253e] font-medium max-w-[200px] truncate" title={app.pageTitle}>
-                          {app.pageTitle.split(' — ')[0].split(' | ')[0]}
+                          {app.pageTitle.split(" — ")[0].split(" | ")[0]}
                         </span>
                         <a
                           href={app.pageUrl}
@@ -140,13 +157,27 @@ function CareerDashboardContent() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => setSelectedApp(app)}
-                        className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
-                        title="View Details"
-                      >
-                        <Eye size={18} className="text-[#f99d1c]" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        {getResumeUrl(app.resume) && (
+                          <a
+                            href={getResumeUrl(app.resume)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
+                            title="View / Download Resume"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <FileText size={18} className="text-[#f99d1c]" />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => setSelectedApp(app)}
+                          className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
+                          title="View Details"
+                        >
+                          <Eye size={18} className="text-[#11253e]" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -197,33 +228,65 @@ function CareerDashboardContent() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Email Address</p>
-                  <p className="text-[#11253e] font-medium">{selectedApp.email}</p>
+                  <a
+                    href={`mailto:${selectedApp.email}`}
+                    className="text-[#11253e] hover:text-[#f99d1c] hover:underline font-medium block break-all transition-colors"
+                    title={`Email ${selectedApp.email}`}
+                  >
+                    {selectedApp.email}
+                  </a>
                 </div>
               </div>
 
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">LinkedIn Profile</p>
                 <a
-                  href={selectedApp.linkedin}
+                  href={selectedApp.linkedin?.startsWith("http") ? selectedApp.linkedin : `https://${selectedApp.linkedin}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#f99d1c] font-medium flex items-center gap-2 hover:underline"
+                  className="text-[#0a66c2] hover:text-[#f99d1c] font-medium flex items-center gap-2 hover:underline break-all transition-colors"
                 >
-                  <Linkedin size={16} /> Open LinkedIn Profile <ExternalLink size={14} />
+                  <Linkedin size={16} className="shrink-0" /> Open LinkedIn Profile <ExternalLink size={14} className="shrink-0" />
                 </a>
               </div>
 
-              {selectedApp.resume && (
-                <div className="space-y-1">
+              {getResumeUrl(selectedApp.resume) && (
+                <div className="space-y-2">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Resume / CV</p>
-                  <a
-                    href={`${API_BASE_URL}${selectedApp.resume}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#f99d1c] font-medium inline-flex items-center gap-2 hover:underline bg-[#f99d1c]/5 border border-[#f99d1c]/20 px-4 py-2 rounded-xl text-xs"
-                  >
-                    <FileText size={14} /> Download / View Resume <ExternalLink size={12} />
-                  </a>
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#f99d1c] flex items-center justify-center text-[#11253e] shrink-0">
+                        <FileText size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#11253e]">Attached Document</p>
+                        <p className="text-[10px] text-gray-500 font-mono truncate">
+                          {selectedApp.resume?.split("/").pop()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href={getResumeUrl(selectedApp.resume)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-[#f99d1c] hover:bg-[#e58b0f] text-[#11253e] font-bold text-xs rounded-xl transition-all shadow-sm"
+                        title="View Resume in Browser"
+                      >
+                        <Eye size={13} /> View <ExternalLink size={11} />
+                      </a>
+                      <a
+                        href={getResumeUrl(selectedApp.resume)!}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-100 text-[#11253e] font-medium text-xs rounded-xl transition-all border border-gray-200"
+                        title="Download Resume"
+                      >
+                        <Download size={13} /> Download
+                      </a>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -234,7 +297,14 @@ function CareerDashboardContent() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Application Source URL</p>
-                  <p className="text-gray-500 text-[11px] break-all font-mono leading-relaxed">{selectedApp.pageUrl}</p>
+                  <a
+                    href={selectedApp.pageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#f99d1c] text-[11px] break-all font-mono hover:underline flex items-center gap-1"
+                  >
+                    {selectedApp.pageUrl} <ExternalLink size={10} />
+                  </a>
                 </div>
               </div>
 

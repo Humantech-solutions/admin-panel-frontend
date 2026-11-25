@@ -17,13 +17,14 @@ import {
   Download,
   Filter,
   Eye,
+  Linkedin,
 } from "lucide-react";
 
 interface CareerMail {
   _id: string;
   name: string;
   email: string;
-  type: 'application' | 'brochure';
+  type: "application" | "brochure";
   linkedin?: string;
   resume?: string;
   pageTitle: string;
@@ -34,8 +35,8 @@ interface CareerMail {
 
 function CareerMailsDashboardContent() {
   const searchParams = useSearchParams();
-  const companyFilter = searchParams.get('company');
-  const websiteFilter = searchParams.get('website') || searchParams.get('project');
+  const companyFilter = searchParams.get("company");
+  const websiteFilter = searchParams.get("website") || searchParams.get("project");
 
   const [inquiries, setInquiries] = useState<CareerMail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,19 +44,29 @@ function CareerMailsDashboardContent() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedMail, setSelectedMail] = useState<CareerMail | null>(null);
 
+  // Helper to resolve clean resume URL
+  const getResumeUrl = (resume?: string) => {
+    if (!resume || !resume.trim()) return null;
+    const clean = resume.trim();
+    if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
+    const base = API_BASE_URL.replace(/\/+$/, "");
+    const path = clean.startsWith("/") ? clean : `/${clean}`;
+    return `${base}${path}`;
+  };
+
   const fetchInquiries = async () => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("adminToken");
       const params = new URLSearchParams();
-      if (companyFilter && companyFilter !== 'all') params.append('company', companyFilter);
-      if (websiteFilter && websiteFilter !== 'all') params.append('website', websiteFilter);
-      const queryStr = params.toString() ? `?${params.toString()}` : '';
+      if (companyFilter && companyFilter !== "all") params.append("company", companyFilter);
+      if (websiteFilter && websiteFilter !== "all") params.append("website", websiteFilter);
+      const queryStr = params.toString() ? `?${params.toString()}` : "";
       const url = `${API_BASE_URL}/api/career/all${queryStr}`;
       const response = await fetch(url, {
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       const data = await response.json();
       if (data.success) {
@@ -72,8 +83,9 @@ function CareerMailsDashboardContent() {
     fetchInquiries();
   }, [companyFilter, websiteFilter]);
 
-  const filteredInquiries = inquiries.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredInquiries = inquiries.filter((item) => {
+    const matchesSearch =
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "all" || item.type === typeFilter;
     return matchesSearch && matchesType;
@@ -84,7 +96,9 @@ function CareerMailsDashboardContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#11253e]">
-            {(websiteFilter || companyFilter || 'All').charAt(0).toUpperCase() + (websiteFilter || companyFilter || 'All').slice(1)} - Career Mails
+            {(websiteFilter || companyFilter || "All").charAt(0).toUpperCase() +
+              (websiteFilter || companyFilter || "All").slice(1)}{" "}
+            - Career Mails
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Tracking {filteredInquiries.length} interactions from the careers page.
@@ -106,7 +120,13 @@ function CareerMailsDashboardContent() {
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#f99d1c] appearance-none cursor-pointer pr-10 relative"
-            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23a0aec0\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\' /%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem' }}
+            style={{
+              backgroundImage:
+                'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23a0aec0\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\' /%3E%3C/svg%3E")',
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 0.75rem center",
+              backgroundSize: "1rem",
+            }}
           >
             <option value="all">All Types</option>
             <option value="application">Applications</option>
@@ -138,13 +158,23 @@ function CareerMailsDashboardContent() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-[#11253e]">{item.name}</span>
-                        <span className="text-[11px] text-gray-400 font-medium">{item.email}</span>
+                        <a
+                          href={`mailto:${item.email}`}
+                          className="text-[11px] text-gray-400 hover:text-[#f99d1c] hover:underline flex items-center gap-1 mt-0.5 transition-colors"
+                          title={`Email ${item.email}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Mail size={10} className="shrink-0" /> {item.email}
+                        </a>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider
-                        ${item.type === 'application' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
-                        {item.type || 'application'}
+                      <span
+                        className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider ${
+                          item.type === "application" ? "bg-blue-50 text-blue-600" : "bg-orange-50 text-orange-600"
+                        }`}
+                      >
+                        {item.type || "application"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -152,7 +182,9 @@ function CareerMailsDashboardContent() {
                         <span className="text-xs text-[#11253e] font-medium truncate" title={item.pageTitle}>
                           {item.pageTitle}
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono truncate">{item.pageUrl ? new URL(item.pageUrl).pathname : "/careers"}</span>
+                        <span className="text-[10px] text-gray-400 font-mono truncate">
+                          {item.pageUrl ? new URL(item.pageUrl).pathname : "/careers"}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -161,12 +193,27 @@ function CareerMailsDashboardContent() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => setSelectedMail(item)}
-                        className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
-                      >
-                        <Eye size={18} className="text-[#f99d1c]" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        {item.type === "application" && getResumeUrl(item.resume) && (
+                          <a
+                            href={getResumeUrl(item.resume)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
+                            title="View / Download Resume"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <FileText size={18} className="text-[#f99d1c]" />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => setSelectedMail(item)}
+                          className="p-2 text-gray-400 hover:text-[#f99d1c] hover:bg-[#f99d1c]/10 rounded-lg transition-all"
+                          title="View Details"
+                        >
+                          <Eye size={18} className="text-[#11253e]" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -189,29 +236,29 @@ function CareerMailsDashboardContent() {
 
       {/* Detail Modal */}
       {selectedMail && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#11253e]/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#11253e]/60 backdrop-blur-sm transition-all">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-[#f99d1c] rounded-2xl flex items-center justify-center text-white">
-                  {selectedMail.type === 'application' ? <Briefcase size={20} /> : <Download size={20} />}
+                  {selectedMail.type === "application" ? <Briefcase size={20} /> : <Download size={20} />}
                 </div>
                 <div>
                   <h2 className="font-bold text-[#11253e]">
-                    {selectedMail.type === 'application' ? 'Job Application' : 'Brochure Request'}
+                    {selectedMail.type === "application" ? "Job Application" : "Brochure Request"}
                   </h2>
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Candidate: {selectedMail.name}</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedMail(null)}
-                className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400"
+                className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-[#11253e]"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-8 space-y-8">
+            <div className="p-8 space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Full Name</p>
@@ -219,7 +266,13 @@ function CareerMailsDashboardContent() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Email Address</p>
-                  <p className="text-[#11253e] font-medium text-sm">{selectedMail.email}</p>
+                  <a
+                    href={`mailto:${selectedMail.email}`}
+                    className="text-[#11253e] hover:text-[#f99d1c] hover:underline font-medium text-sm block break-all transition-colors"
+                    title={`Email ${selectedMail.email}`}
+                  >
+                    {selectedMail.email}
+                  </a>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Submitted At</p>
@@ -230,25 +283,58 @@ function CareerMailsDashboardContent() {
                 {selectedMail.linkedin && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">LinkedIn Profile</p>
-                    <a href={selectedMail.linkedin} target="_blank" className="text-[#f99d1c] text-sm hover:underline flex items-center gap-1">
-                      View Profile <ExternalLink size={12} />
-                    </a>
-                  </div>
-                )}
-                {selectedMail.type === 'application' && selectedMail.resume && (
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Resume / CV</p>
                     <a
-                      href={`${API_BASE_URL}${selectedMail.resume}`}
+                      href={selectedMail.linkedin.startsWith("http") ? selectedMail.linkedin : `https://${selectedMail.linkedin}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#f99d1c] font-medium inline-flex items-center gap-2 hover:underline bg-[#f99d1c]/5 border border-[#f99d1c]/20 px-4 py-2 rounded-xl text-xs"
+                      className="text-[#0a66c2] hover:text-[#f99d1c] text-sm hover:underline flex items-center gap-1.5 break-all transition-colors"
                     >
-                      <FileText size={14} /> Download / View Resume <ExternalLink size={12} />
+                      <Linkedin size={14} className="shrink-0" /> Open LinkedIn Profile <ExternalLink size={12} className="shrink-0" />
                     </a>
                   </div>
                 )}
               </div>
+
+              {/* Resume / CV Card if application */}
+              {selectedMail.type === "application" && getResumeUrl(selectedMail.resume) && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Candidate Resume / CV</p>
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#f99d1c] flex items-center justify-center text-[#11253e] shrink-0">
+                        <FileText size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#11253e]">Attached Document</p>
+                        <p className="text-[10px] text-gray-500 font-mono truncate">
+                          {selectedMail.resume?.split("/").pop()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href={getResumeUrl(selectedMail.resume)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-[#f99d1c] hover:bg-[#e58b0f] text-[#11253e] font-bold text-xs rounded-xl transition-all shadow-sm"
+                        title="View Resume in Browser"
+                      >
+                        <Eye size={13} /> View <ExternalLink size={11} />
+                      </a>
+                      <a
+                        href={getResumeUrl(selectedMail.resume)!}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-100 text-[#11253e] font-medium text-xs rounded-xl transition-all border border-gray-200"
+                        title="Download Resume"
+                      >
+                        <Download size={13} /> Download
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="bg-[#f8f9fa] rounded-2xl p-6 border border-gray-100 space-y-4">
                 <div className="space-y-1">
@@ -256,33 +342,38 @@ function CareerMailsDashboardContent() {
                     <Globe size={12} /> Source Context
                   </div>
                   <p className="text-[#11253e] font-bold text-sm tracking-tight">{selectedMail.pageTitle}</p>
-                  <p className="text-gray-400 text-[11px] font-mono break-all">{selectedMail.pageUrl}</p>
+                  {selectedMail.pageUrl && (
+                    <a
+                      href={selectedMail.pageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#f99d1c] text-[11px] font-mono break-all hover:underline flex items-center gap-1"
+                    >
+                      {selectedMail.pageUrl} <ExternalLink size={10} />
+                    </a>
+                  )}
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <button className="flex-1 bg-[#11253e] text-white py-3.5 rounded-2xl font-bold text-[11px] uppercase tracking-widest">
-                  Send Response
-                </button>
-                {selectedMail.type === 'application' && selectedMail.resume ? (
+              <div className="flex gap-3 pt-2">
+                <a
+                  href={`mailto:${selectedMail.email}?subject=Regarding your application at Hutech Solutions`}
+                  className="flex-1 bg-[#11253e] hover:bg-[#1a385c] text-white py-3.5 rounded-2xl font-bold text-[11px] uppercase tracking-widest text-center transition-all flex items-center justify-center gap-2"
+                >
+                  <Mail size={14} /> Send Response
+                </a>
+                {selectedMail.type === "application" && getResumeUrl(selectedMail.resume) ? (
                   <a
-                    href={`${API_BASE_URL}${selectedMail.resume}`}
+                    href={getResumeUrl(selectedMail.resume)!}
+                    download
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-6 border border-gray-100 rounded-2xl text-gray-400 hover:text-[#f99d1c] hover:border-[#f99d1c] transition-all flex items-center justify-center"
+                    className="px-6 border border-gray-200 hover:border-[#f99d1c] hover:text-[#f99d1c] rounded-2xl text-gray-600 transition-all flex items-center justify-center"
                     title="Download Resume"
                   >
                     <Download size={18} />
                   </a>
-                ) : (
-                  <button
-                    disabled
-                    className="px-6 border border-gray-100 rounded-2xl text-gray-200 cursor-not-allowed flex items-center justify-center"
-                    title="No Resume Available"
-                  >
-                    <Download size={18} />
-                  </button>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

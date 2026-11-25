@@ -206,7 +206,7 @@ function EventDashboardContent() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-[#11253e]">{reg.firstName} {reg.lastName}</span>
-                        <span className="text-[11px] text-gray-400 font-medium">{reg.email}</span>
+                        <a href={`mailto:${reg.email}`} className="text-[11px] text-gray-400 hover:text-[#f99d1c] hover:underline transition-colors" title={`Email ${reg.email}`} onClick={(e) => e.stopPropagation()}>{reg.email}</a>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -294,7 +294,7 @@ function EventDashboardContent() {
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Email Address</p>
-                        <p className="text-[#11253e] font-medium text-sm">{selectedReg.email}</p>
+                        <a href={`mailto:${selectedReg.email}`} className="text-[#11253e] hover:text-[#f99d1c] hover:underline font-medium text-sm block break-all transition-colors" title={`Email ${selectedReg.email}`}>{selectedReg.email}</a>
                       </div>
                     </div>
                   </div>
