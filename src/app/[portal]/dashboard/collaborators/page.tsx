@@ -25,7 +25,7 @@ interface Employee {
   name: string;
   email: string;
   role: string;
-  status: "active" | "invited" | "inactive";
+  status: "active" | "invited" | "pending" | "inactive";
   joinedAt?: string;
 }
 
@@ -278,7 +278,7 @@ function EmployeesContent() {
   const statusBadge = (status: Employee["status"]) => {
     if (status === "active")
       return "bg-green-50 text-green-700 border border-green-200";
-    if (status === "invited")
+    if (status === "invited" || status === "pending")
       return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     return "bg-gray-50 text-gray-500 border border-gray-200";
   };
@@ -334,8 +334,8 @@ function EmployeesContent() {
             color: "bg-green-50 text-green-600",
           },
           {
-            label: "Invited (Pending)",
-            value: employees.filter((e) => e.status === "invited").length,
+            label: "Pending Invites",
+            value: employees.filter((e) => e.status === "invited" || e.status === "pending").length,
             icon: <Mail size={20} />,
             color: "bg-yellow-50 text-yellow-600",
           },
@@ -446,8 +446,8 @@ function EmployeesContent() {
                       <span
                         className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${statusBadge(emp.status)}`}
                       >
-                        {emp.status === "invited" 
-                          ? "Invited (Pending)" 
+                        {emp.status === "invited" || emp.status === "pending"
+                          ? "Pending" 
                           : emp.status.charAt(0).toUpperCase() + emp.status.slice(1)}
                       </span>
                     </td>
