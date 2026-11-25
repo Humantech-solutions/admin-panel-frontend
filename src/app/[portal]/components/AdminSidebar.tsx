@@ -19,6 +19,7 @@ import {
   Globe,
   Settings,
   LayoutDashboard,
+  Users,
 } from "lucide-react";
 import { useCompanies } from "@/lib/useCompanies";
 import { useAuth } from "@/context/AuthContext";
