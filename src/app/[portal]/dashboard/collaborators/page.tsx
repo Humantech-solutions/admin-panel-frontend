@@ -57,10 +57,11 @@ function EmployeesContent() {
   const { user } = useAuth();
   const isSuper =
     user?.role === "superadmin" ||
+    user?.role === "super_user" ||
     user?.role === "super_editor" ||
     user?.role === "super_viewer";
 
-  const isAdmin = user?.role === "superadmin" || user?.role === "company_admin";
+  const isAdmin = user?.role === "superadmin" || user?.role === "super_user" || user?.role === "company_admin";
   const isEditor = user?.role === "super_editor" || user?.role === "company_editor";
 
   // Context-aware role options
@@ -91,26 +92,32 @@ function EmployeesContent() {
       ]
     : [
         {
+          value: "super_user",
+          label: "Super User",
+          desc: "Platform Super User",
+          color: "bg-indigo-50 text-indigo-700 border-indigo-200",
+        },
+        {
           value: "superadmin",
-          label: "Admin",
+          label: "Super Admin",
           desc: "Platform Owner",
           color: "bg-purple-50 text-purple-700 border-purple-200",
         },
         {
           value: "super_editor",
-          label: "Editor",
+          label: "Platform Editor",
           desc: "Can manage forms and content",
           color: "bg-blue-50 text-blue-700 border-blue-200",
         },
         {
           value: "super_viewer",
-          label: "Viewer",
+          label: "Platform Viewer",
           desc: "Read-only access",
           color: "bg-gray-50 text-gray-700 border-gray-200",
         },
       ];
 
-  const defaultRole = isTargetCompanyUser ? "company_viewer" : "super_viewer";
+  const defaultRole = isTargetCompanyUser ? "company_viewer" : "super_user";
 
   const [form, setForm] = useState({ name: "", email: "", role: defaultRole });
   const [formError, setFormError] = useState("");
@@ -433,7 +440,11 @@ function EmployeesContent() {
                       <span
                         className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold border ${roleBadge(emp.role)}`}
                       >
-                        {emp.role.includes("admin")
+                        {emp.role === "super_user"
+                          ? "Super User"
+                          : emp.role === "superadmin"
+                          ? "Super Admin"
+                          : emp.role.includes("admin")
                           ? "Admin"
                           : emp.role.includes("editor")
                           ? "Editor"
