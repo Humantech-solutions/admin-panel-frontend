@@ -26,7 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 
 const getCompanyNavItems = (company: string, role?: string) => {
   const items = [];
-  if (role === 'company_admin' || role === 'superadmin') {
+  if (role === 'company_admin' || role === 'superadmin' || role === 'super_user') {
     items.push({ label: "Websites", href: `/admin/dashboard?company=${company}`, icon: <Globe size={20} /> });
     items.push({ label: "Global Settings", href: `/admin/dashboard/settings?company=${company}`, icon: <Settings size={20} /> });
   }
@@ -78,7 +78,7 @@ interface AdminSidebarProps {
   onMobileClose: () => void;
 }
 
-const getSuperAdminNavItems = (role?: string) => { const items = []; if (['superadmin', 'super_editor', 'super_viewer'].includes(role || '')) { items.push({ label: "Companies & Websites", href: "/organization/companies", icon: <Building2 size={20} /> }); } return items; };
+const getSuperAdminNavItems = (role?: string) => { const items = []; if (['superadmin', 'super_user', 'super_editor', 'super_viewer'].includes(role || '')) { items.push({ label: "Companies & Websites", href: "/organization/companies", icon: <Building2 size={20} /> }); } return items; };
 
 
 
@@ -96,7 +96,7 @@ export function AdminSidebar({ isOpen, onToggle, isMobileOpen, onMobileClose }: 
     setMounted(true);
   }, []);
 
-  const isSuperAdmin = (mounted && ["superadmin", "super_editor", "super_viewer"].includes(user?.role || "")) || pathname.startsWith("/organization");
+  const isSuperAdmin = (mounted && ["superadmin", "super_user", "super_editor", "super_viewer"].includes(user?.role || "")) || pathname.startsWith("/organization");
 
   const currentCompanySlug = searchParams.get("company") || (user as any)?.companySlug || companies[0]?.slug || "";
   const currentWebsite = searchParams.get("website");

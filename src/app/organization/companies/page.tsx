@@ -15,6 +15,7 @@ import {
   Shield,
   HardDrive,
   Code2,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/config/api";
@@ -32,13 +33,13 @@ export default function OrganizationCompaniesPage() {
   const router = useRouter();
   const { companies, loading, refetch } = useCompanies();
 
-  const isAdmin = user?.role === "superadmin";
+  const isAdmin = user?.role === "superadmin" || user?.role === "super_user";
   const isEditor = user?.role === "super_editor";
   const isViewer = user?.role === "super_viewer";
 
   // Role check: Only Super Admin / Product Owner can access
   useEffect(() => {
-    if (user && !["superadmin", "super_editor", "super_viewer"].includes(user.role || "") && !loading) {
+    if (user && !["superadmin", "super_user", "super_editor", "super_viewer"].includes(user.role || "") && !loading) {
       const targetSlug = (user as any).companySlug || companies[0]?.slug;
       if (targetSlug) {
         router.replace(`/admin/dashboard?company=${targetSlug}`);
@@ -205,18 +206,18 @@ export default function OrganizationCompaniesPage() {
 
       {/* Companies Master Table */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Organization</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Slug</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Admin Email</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Websites</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Storage Used</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Onboarded Date</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+              <tr className="bg-gray-50/75 border-b border-gray-100">
+                <th className="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Organization</th>
+                <th className="px-4 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Slug</th>
+                <th className="px-4 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Admin Email</th>
+                <th className="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Websites</th>
+                <th className="px-4 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Storage</th>
+                <th className="px-4 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Onboarded</th>
+                <th className="px-4 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Status</th>
+                <th className="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -245,120 +246,121 @@ export default function OrganizationCompaniesPage() {
                 </tr>
               ) : (
                 companies.map((company) => (
-                  <tr key={company._id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#11253e] to-[#1a3d66] flex items-center justify-center text-white font-bold text-sm shrink-0 mt-0.5">
+                  <tr key={company._id} className="hover:bg-slate-50/60 transition-colors group">
+                    {/* Organization Column */}
+                    <td className="px-5 py-4 align-top">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#11253e] to-[#1a3d66] flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs">
                           {company.name[0]?.toUpperCase()}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-[#11253e]">{company.name}</p>
-                          {company.description && (
-                            <p className="text-[11px] text-gray-400 mt-0.5 max-w-[200px] truncate">{company.description}</p>
-                          )}
-                          {Array.isArray((company as any).websites) && (company as any).websites.length > 0 && (
-                            <div className="mt-2 pt-1.5 border-t border-gray-100 space-y-1">
-                              {(company as any).websites.map((site: any) => (
-                                <div key={site._id || site.slug} className="flex items-center gap-1.5 text-[11px]">
-                                  <span className="text-gray-300 font-mono text-[10px]">↳</span>
-                                  <Globe size={11} className="text-blue-500 shrink-0" />
-                                  <span className="font-semibold text-gray-700">{site.name}</span>
-                                </div>
-                              ))}
-                            </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-[#11253e] leading-snug">{company.name}</p>
+                          {company.description ? (
+                            <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{company.description}</p>
+                          ) : (
+                            <span className="text-[11px] text-gray-400 font-normal">Tenant Portal</span>
                           )}
                         </div>
                       </div>
                     </td>
 
-                    <td className="px-6 py-4">
-                      <span className="font-mono text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md">
+                    {/* Slug Column */}
+                    <td className="px-4 py-4 align-top">
+                      <span className="inline-block whitespace-nowrap font-mono text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200/60 font-medium">
                         {company.slug}
                       </span>
                     </td>
 
-                    <td className="px-6 py-4">
-                      <span className="text-xs text-gray-500">{company.adminEmail}</span>
+                    {/* Admin Email Column */}
+                    <td className="px-4 py-4 align-top">
+                      <span className="text-xs font-medium text-slate-600 break-all">{company.adminEmail}</span>
                     </td>
 
-                    <td className="px-6 py-4">
+                    {/* Websites Column */}
+                    <td className="px-5 py-4 align-top">
                       {(() => {
                         const websites = (company as any).websites || [];
                         if (!Array.isArray(websites) || websites.length === 0) {
                           return (
-                            <span className="text-xs text-gray-400 font-medium italic">
+                            <span className="text-xs text-slate-400 italic font-normal">
                               No websites linked
                             </span>
                           );
                         }
                         return (
-                          <div className="space-y-2.5">
-                            {websites.map((site: any) => {
-                              const formattedDate = site.createdAt
-                                ? new Date(site.createdAt).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    year: "numeric",
-                                  })
-                                : "N/A";
-                              return (
-                                <div key={site._id || site.slug} className="flex items-center gap-2">
-                                  <span className="inline-flex items-center bg-emerald-500 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-xs shrink-0 tracking-tight">
-                                    {formattedDate}
-                                  </span>
-                                  <div className="flex flex-col min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-xs font-bold text-[#11253e] truncate">
-                                        {site.name}
-                                      </span>
-                                      <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${site.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                        {site.isActive !== false ? 'Active' : 'Inactive'}
-                                      </span>
-                                    </div>
-                                    {site.url && (
-                                      <a
-                                        href={site.url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-[11px] font-medium text-blue-600 hover:underline truncate max-w-[170px]"
-                                      >
-                                        {site.url}
-                                      </a>
-                                    )}
-                                  </div>
+                          <div className="space-y-1.5">
+                            {websites.map((site: any) => (
+                              <div
+                                key={site._id || site.slug}
+                                className="flex items-start gap-2 bg-slate-50 border border-slate-200/60 rounded-lg p-2 min-w-[200px] max-w-[280px]"
+                              >
+                                <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                                  <Globe size={13} />
                                 </div>
-                              );
-                            })}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="text-xs font-bold text-[#11253e] truncate">
+                                      {site.name}
+                                    </span>
+                                    <span
+                                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                                        site.isActive !== false
+                                          ? "bg-emerald-100 text-emerald-700"
+                                          : "bg-slate-200 text-slate-600"
+                                      }`}
+                                    >
+                                      {site.isActive !== false ? "Active" : "Inactive"}
+                                    </span>
+                                  </div>
+                                  {site.url && (
+                                    <a
+                                      href={site.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline truncate block mt-0.5 flex items-center gap-1"
+                                    >
+                                      <span className="truncate">
+                                        {site.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                                      </span>
+                                      <ExternalLink size={10} className="shrink-0 opacity-60" />
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         );
                       })()}
                     </td>
 
-                    <td className="px-6 py-4">
+                    {/* Storage Used Column */}
+                    <td className="px-4 py-4 align-top text-center">
                       {(() => {
                         const mb = (company as any).storageMB || (company as any).storageUsedMB || 0;
                         const formatted = mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
                         return (
-                          <span className="font-mono text-xs text-gray-700 bg-gray-100 px-2.5 py-1 rounded-md font-bold">
+                          <span className="inline-block font-mono text-xs text-slate-700 bg-slate-100 border border-slate-200/60 px-2.5 py-1 rounded-md font-bold whitespace-nowrap">
                             {formatted}
                           </span>
                         );
                       })()}
                     </td>
 
-                    <td className="px-6 py-4">
-                      <span className="text-xs text-gray-500 font-medium">
+                    {/* Onboarded Date Column */}
+                    <td className="px-4 py-4 align-top">
+                      <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
                         {company.createdAt
                           ? new Date(company.createdAt).toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
                               year: "numeric",
                             })
-                          : "Aug 17, 2026"}
+                          : "—"}
                       </span>
                     </td>
 
-                    <td className="px-6 py-4">
+                    {/* Status Column */}
+                    <td className="px-4 py-4 align-top text-center">
                       <button
                         onClick={() => toggleActive(company)}
                         disabled={togglingIds.has(company._id)}
@@ -368,12 +370,12 @@ export default function OrganizationCompaniesPage() {
                         {togglingIds.has(company._id) ? (
                           <Loader2 size={14} className="animate-spin text-gray-400" />
                         ) : company.isActive ? (
-                          <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-600 text-[11px] font-bold px-2.5 py-1 rounded-full">
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 border border-emerald-200/60 text-[11px] font-bold px-2.5 py-1 rounded-full hover:bg-emerald-100/60 transition-colors whitespace-nowrap">
                             <CheckCircle2 size={12} />
                             Active
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-400 text-[11px] font-bold px-2.5 py-1 rounded-full">
+                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 border border-slate-200 text-[11px] font-bold px-2.5 py-1 rounded-full hover:bg-slate-200 transition-colors whitespace-nowrap">
                             <XCircle size={12} />
                             Inactive
                           </span>
@@ -381,11 +383,12 @@ export default function OrganizationCompaniesPage() {
                       </button>
                     </td>
 
-                    <td className="px-6 py-4">
+                    {/* Actions Column */}
+                    <td className="px-5 py-4 align-top text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setEmbedCompany(company)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-[#f99d1c] hover:bg-orange-50 transition-all"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#f99d1c] hover:bg-amber-50 transition-all"
                           title="View Embed Code"
                         >
                           <Code2 size={16} />
@@ -393,8 +396,8 @@ export default function OrganizationCompaniesPage() {
                         {(isAdmin || isEditor) && (
                           <button
                             onClick={() => openEdit(company)}
-                            className="p-2 rounded-lg text-gray-400 hover:text-[#11253e] hover:bg-gray-100 transition-all"
-                            title="Edit Company"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#11253e] hover:bg-slate-100 transition-all"
+                            title="Edit Organization"
                           >
                             <Pencil size={16} />
                           </button>
@@ -402,8 +405,8 @@ export default function OrganizationCompaniesPage() {
                         {isAdmin && (
                           <button
                             onClick={() => setDeleteTarget(company)}
-                            className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                            title="Delete Company"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                            title="Delete Organization"
                           >
                             <Trash2 size={16} />
                           </button>
